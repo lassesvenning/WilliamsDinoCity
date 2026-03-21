@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>William's Dino City!</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:#111; font-family:Arial,sans-serif; display:flex; flex-direction:column; align-items:center; padding:8px; }
+  h1 { color:#fff; font-size:20px; margin:6px 0 4px; }
+  #hud { color:#fff; font-size:15px; font-weight:bold; margin-bottom:4px; }
+  canvas { display:block; border:3px solid #4CAF50; border-radius:6px; }
+  #info { color:#aaa; font-size:13px; margin-top:5px; text-align:center; }
+  #dpad { display:grid; grid-template-columns:64px 64px 64px; grid-template-rows:64px 64px; gap:5px; margin-top:8px; }
+  .db { width:64px; height:64px; font-size:30px; border:none; border-radius:10px; background:#4CAF50; color:#fff; cursor:pointer; font-weight:bold; touch-action:none; user-select:none; }
+  .db:active { background:#2d7a2d; }
+  .sp { visibility:hidden; width:64px; height:64px; }
+  #mathBox { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.75); align-items:center; justify-content:center; z-index:100; }
+  #mathBox.show { display:flex; }
+  #mathInner { background:#1a3a5c; border:5px solid #f5c518; border-radius:24px; padding:24px 28px; text-align:center; max-width:340px; width:90%; }
+  #mathInner .pit-icon { font-size:50px; margin-bottom:4px; }
+  #mathInner h2 { color:#f5c518; font-size:22px; margin-bottom:8px; }
+  .finger-row { display:flex; align-items:center; justify-content:center; gap:8px; margin:6px 0; flex-wrap:nowrap; }
+  .finger-group { display:flex; flex-direction:column; align-items:center; gap:2px; }
+  .finger-num { color:#fff; font-size:40px; font-weight:bold; line-height:1; }
+  .finger-emoji { font-size:22px; line-height:1.3; max-width:90px; text-align:center; }
+  .finger-plus { color:#f5c518; font-size:34px; font-weight:bold; }
+  .finger-eq   { color:#f5c518; font-size:34px; font-weight:bold; }
+  .finger-q    { color:#fff;    font-size:40px; font-weight:bold; }
+  #answerBtns { display:flex; gap:14px; justify-content:center; flex-wrap:wrap; margin-top:14px; }
+  .ans-btn { width:80px; height:80px; font-size:30px; font-weight:bold; border:none; border-radius:16px; cursor:pointer; background:#2980b9; color:#fff; transition:transform 0.1s; }
+  .ans-btn:hover { transform:scale(1.1); background:#3498db; }
+  #mathResult { font-size:28px; margin-top:14px; min-height:36px; }
+</style>
+</head>
+<body>
+<h1>William's Dino City!</h1>
+<div id="hud">Eggs: <span id="eN">0</span> &nbsp;|&nbsp; Cups: <span id="cN">0</span> &nbsp;|&nbsp; Score: <span id="sN">0</span></div>
+<canvas id="gc" width="560" height="420"></canvas>
+<div id="info">Arrow keys or buttons to move &mdash; watch out for the pits!</div>
+<div id="dpad">
+  <div class="sp"></div>
+  <button class="db" id="bU">&#9650;</button>
+  <div class="sp"></div>
+  <button class="db" id="bL">&#9668;</button>
+  <button class="db" id="bD">&#9660;</button>
+  <button class="db" id="bR">&#9658;</button>
+</div>
+<div id="mathBox">
+  <div id="mathInner">
+    <div class="pit-icon">&#x1F573;&#xFE0F;</div>
+    <h2>Uh oh! A big pit!<br>Answer to jump over!</h2>
+    <div id="fingerDisplay"></div>
+    <div id="answerBtns"></div>
+    <div id="mathResult"></div>
+  </div>
+</div>
+<script>
+var c=document.getElementById('gc'),ctx=c.getContext('2d'),W=560,H=420;
+var TILE=80,STEP=280,COLS_N=8,ROWS_N=8;
+var streetX=[],streetY=[];
+for(var i=0;i<COLS_N;i++) streetX.push(i*STEP);
+for(var i=0;i<ROWS_N;i++) streetY.push(i*STEP);
+var WORLD_W=(COLS_N-1)*STEP+TILE, WORLD_H=(ROWS_N-1)*STEP+TILE;
+
+function onRoad(wx,wy){
+  for(var i=0;i<streetX.length;i++) if(wx>=streetX[i]&&wx<=streetX[i]+TILE) return true;
+  for(var i=0;i<streetY.length;i++) if(wy>=streetY[i]&&wy<=streetY[i]+TILE) return true;
+  return false;
+}
+
+var BCOLS=['#c0392b','#2980b9','#8e44ad','#27ae60','#d35400','#e67e22','#16a085','#7f8c8d','#c0392b','#1abc9c'];
+var buildings=[];
+for(var r=0;r<ROWS_N-1;r++) for(var cc=0;cc<COLS_N-1;cc++){
+  var bx=streetX[cc]+TILE+6,by=streetY[r]+TILE+6,bw=STEP-TILE-12,bh=STEP-TILE-12;
+  if(bw>10&&bh>10) buildings.push({x:bx,y:by,w:bw,h:bh,col:BCOLS[(r*(COLS_N-1)+cc)%BCOLS.length]});
+}
+
+var trees=[];
+for(var r=0;r<ROWS_N-1;r++) for(var cc=0;cc<COLS_N-1;cc++){
+  var bx=streetX[cc]+TILE+20,by=streetY[r]+TILE+20,bx2=streetX[cc+1]-20,by2=streetY[r+1]-20;
+  trees.push({x:bx, y:by,  egg:Math.random()<0.7,got:false});
+  trees.push({x:bx2,y:by,  egg:Math.random()<0.7,got:false});
+  trees.push({x:bx, y:by2, egg:Math.random()<0.7,got:false});
+  trees.push({x:bx2,y:by2, egg:Math.random()<0.7,got:false});
+}
+var eggTrees=trees.filter(function(t){return t.egg;});
+
+var cups=[];
+for(var i=0;i<20;i++){
+  var ri=Math.floor(Math.random()*ROWS_N);
+  cups.push({x:100+Math.random()*(WORLD_W-200),y:streetY[ri]+TILE/2,got:false});
+}
+
+var PIT_R=32,pits=[];
+[[1,STEP*1.5],[2,STEP*3.5],[3,STEP*2.5],[4,STEP*1.5],[5,STEP*4.5],[6,STEP*3.0]].forEach(function(p){
+  var py=streetY[p[0]]+TILE/2;
+  if(p[1]>60&&p[1]<WORLD_W-60) pits.push({x:p[1],y:py,r:PIT_R,active:true});
+});
+[[2,STEP*2.5],[4,STEP*4.0],[5,STEP*1.5]].forEach(function(p){
+  var px=streetX[p[0]]+TILE/2;
+  if(p[1]>60&&p[1]<WORLD_H-60) pits.push({x:px,y:p[1],r:PIT_R,active:true});
+});
+
+var dino={x:streetX[2]+TILE/2,y:streetY[2]+TILE/2,spd:4,w:28,h:28};
+var cam={x:0,y:0};
+var score=0,eggCount=0,cupCount=0,lastBabyScore=0;
+
+// ---- BABY DINO TRAIL SYSTEM ----
+var trail=[];
+var BABY_GAP=5;
+var babies=[];
+
+function spawnBaby(){
+  // Graduate the most recent baby to adult (green) before adding new tiny baby
+  if(babies.length>0) babies[babies.length-1].adult=true;
+  babies.push({offset:(babies.length+1)*BABY_GAP, adult:false});
+  var info=document.getElementById('info');
+  info.style.color='#4ade4a';
+  info.textContent=babies.length+' dino'+(babies.length>1?'s':'')+' following you!';
+  setTimeout(function(){
+    info.style.color='#aaa';
+    info.textContent='Arrow keys or buttons to move \u2014 watch out for the pits!';
+  },2500);
+}
+
+// ---- MATH SYSTEM ----
+var inPit=false,currentPit=null,mathLocked=false;
+var ALL_Q=[];
+for(var _a=1;_a<=4;_a++) for(var _b=1;_b<=4;_b++) if(_a+_b<=5) ALL_Q.push([_a,_b]);
+
+function makeMath(){
+  var p=ALL_Q[Math.floor(Math.random()*ALL_Q.length)];
+  var a=p[0],b=p[1],ans=a+b;
+  var w=[1,2,3,4,5].filter(function(n){return n!==ans;});
+  w.sort(function(){return Math.random()-0.5;});
+  return {a:a,b:b,ans:ans,choices:[ans,w[0],w[1]].sort(function(){return Math.random()-0.5;})};
+}
+
+function fingersFor(n){
+  var rows=[],row='';
+  for(var i=0;i<n;i++){
+    row+='\u261D\uFE0F';
+    if((i+1)%3===0){rows.push(row);row='';}
+  }
+  if(row) rows.push(row);
+  return rows.join('<br>');
+}
+
+function showMath(pit){
+  if(mathLocked) return;
+  mathLocked=inPit=true; currentPit=pit;
+  var q=makeMath();
+  document.getElementById('mathResult').textContent='';
+  document.getElementById('fingerDisplay').innerHTML=
+    '<div class="finger-row">'+
+    '<div class="finger-group"><div class="finger-num">'+q.a+'</div><div class="finger-emoji">'+fingersFor(q.a)+'</div></div>'+
+    '<span class="finger-plus">+</span>'+
+    '<div class="finger-group"><div class="finger-num">'+q.b+'</div><div class="finger-emoji">'+fingersFor(q.b)+'</div></div>'+
+    '<span class="finger-eq">=</span><span class="finger-q">?</span></div>';
+  var bd=document.getElementById('answerBtns');
+  bd.innerHTML='';
+  q.choices.forEach(function(ch){
+    var btn=document.createElement('button');
+    btn.className='ans-btn';
+    btn.innerHTML='<div style="font-size:28px;font-weight:bold">'+ch+'</div><div style="font-size:16px;line-height:1.3">'+fingersFor(ch)+'</div>';
+    btn.onclick=function(){
+      if(ch===q.ans){
+        document.getElementById('mathResult').innerHTML='&#127881; YES! Well done!';
+        document.getElementById('mathResult').style.color='#4ade4a';
+        pit.active=false; score+=20;
+        document.getElementById('sN').textContent=score;
+        while(score>=lastBabyScore+100){lastBabyScore+=100;spawnBaby();}
+        setTimeout(function(){
+          document.getElementById('mathBox').classList.remove('show');
+          var dirs=[{dx:0,dy:-90},{dx:0,dy:90},{dx:-90,dy:0},{dx:90,dy:0}];
+          for(var d=0;d<dirs.length;d++){
+            var tx=pit.x+dirs[d].dx,ty=pit.y+dirs[d].dy;
+            if(onRoad(tx,ty)){dino.x=tx;dino.y=ty;break;}
+          }
+          inPit=false; mathLocked=false;
+        },1000);
+      } else {
+        document.getElementById('mathResult').innerHTML='&#10060; Try again!';
+        document.getElementById('mathResult').style.color='#ff6666';
+        btn.style.background='#c0392b';
+        setTimeout(function(){document.getElementById('mathResult').textContent='';btn.style.background='#2980b9';},800);
+      }
+    };
+    bd.appendChild(btn);
+  });
+  document.getElementById('mathBox').classList.add('show');
+}
+
+function checkPits(){
+  if(inPit) return;
+  pits.forEach(function(pit){
+    if(!pit.active) return;
+    var ddx=dino.x-pit.x,ddy=dino.y-pit.y;
+    if(Math.sqrt(ddx*ddx+ddy*ddy)<pit.r-4) showMath(pit);
+  });
+}
+
+// ---- INPUT ----
+var K={up:false,down:false,left:false,right:false};
+window.onkeydown=function(e){
+  if(e.key==='ArrowUp'   ||e.key==='w'){K.up=true;   e.preventDefault();}
+  if(e.key==='ArrowDown' ||e.key==='s'){K.down=true;  e.preventDefault();}
+  if(e.key==='ArrowLeft' ||e.key==='a'){K.left=true;  e.preventDefault();}
+  if(e.key==='ArrowRight'||e.key==='d'){K.right=true; e.preventDefault();}
+};
+window.onkeyup=function(e){
+  if(e.key==='ArrowUp'   ||e.key==='w') K.up=false;
+  if(e.key==='ArrowDown' ||e.key==='s') K.down=false;
+  if(e.key==='ArrowLeft' ||e.key==='a') K.left=false;
+  if(e.key==='ArrowRight'||e.key==='d') K.right=false;
+};
+function bindBtn(id,dir){
+  var el=document.getElementById(id);
+  function on(e){e.preventDefault();K[dir]=true;}
+  function off(e){e.preventDefault();K[dir]=false;}
+  el.addEventListener('mousedown',on); el.addEventListener('mouseup',off); el.addEventListener('mouseleave',off);
+  el.addEventListener('touchstart',on,{passive:false}); el.addEventListener('touchend',off,{passive:false}); el.addEventListener('touchcancel',off,{passive:false});
+}
+bindBtn('bU','up');bindBtn('bD','down');bindBtn('bL','left');bindBtn('bR','right');
+
+// ---- UPDATE ----
+function update(){
+  if(inPit) return;
+  var dx=0,dy=0;
+  if(K.left)  dx=-dino.spd;
+  if(K.right) dx= dino.spd;
+  if(K.up)    dy=-dino.spd;
+  if(K.down)  dy= dino.spd;
+  var nx=Math.max(0,Math.min(WORLD_W,dino.x+dx));
+  var ny=Math.max(0,Math.min(WORLD_H,dino.y+dy));
+  var m=10;
+  function ok(px,py){return onRoad(px-m,py-m)&&onRoad(px+m,py-m)&&onRoad(px-m,py+m)&&onRoad(px+m,py+m);}
+  if(ok(nx,dino.y)) dino.x=nx;
+  if(ok(dino.x,ny)) dino.y=ny;
+  cam.x=Math.max(0,Math.min(WORLD_W-W,dino.x-W/2));
+  cam.y=Math.max(0,Math.min(WORLD_H-H,dino.y-H/2));
+  // Record trail for baby dinos
+  var last=trail[trail.length-1];
+  if(!last||Math.abs(dino.x-last.x)+Math.abs(dino.y-last.y)>=6){
+    trail.push({x:dino.x,y:dino.y});
+    var maxLen=(babies.length+2)*BABY_GAP+60;
+    if(trail.length>maxLen) trail.shift();
+  }
+}
+
+function collect(){
+  eggTrees.forEach(function(t){
+    if(!t.got&&Math.abs(dino.x-t.x)<36&&Math.abs(dino.y-t.y)<36){
+      t.got=true;eggCount++;score+=10;
+      document.getElementById('eN').textContent=eggCount;
+      document.getElementById('sN').textContent=score;
+      while(score>=lastBabyScore+100){lastBabyScore+=100;spawnBaby();}
+    }
+  });
+  cups.forEach(function(cu){
+    if(!cu.got&&Math.abs(dino.x-cu.x)<28&&Math.abs(dino.y-cu.y)<28){
+      cu.got=true;cupCount++;score+=25;
+      document.getElementById('cN').textContent=cupCount;
+      document.getElementById('sN').textContent=score;
+      while(score>=lastBabyScore+100){lastBabyScore+=100;spawnBaby();}
+    }
+  });
+}
+
+// ---- DRAW ----
+function drawBabyDino(wx,wy,isAdult){
+  var bx=wx-cam.x,by=wy-cam.y;
+  // adults are same size as big dino, babies are 55%
+  var s=isAdult?1.0:0.55;
+  var bw=dino.w*s,bh=dino.h*s,bhw=bw/2,bhh=bh/2;
+  // colour scheme: adults green like big dino, babies black with green eyes
+  var bodyCol  = isAdult?'#3a9e3a':'#1a1a1a';
+  var spotCol  = isAdult?'#1a1a1a':'#2e2e2e';
+  var legCol   = isAdult?'#2a7a2a':'#111';
+  var headCol  = isAdult?'#4ab84a':'#222';
+  var snoutCol = isAdult?'#3a9e3a':'#1a1a1a';
+  var nostrilC = isAdult?'#1a5a1a':'#000';
+  var spikeCol = isAdult?'#1a5a1a':'#333';
+  var tailCol  = isAdult?'#2a7a2a':'#111';
+  // shadow
+  ctx.fillStyle='rgba(0,0,0,0.15)';
+  ctx.beginPath();ctx.ellipse(bx,by+bhh+3,bhw+3,4,0,0,Math.PI*2);ctx.fill();
+  // body
+  ctx.fillStyle=bodyCol;ctx.fillRect(bx-bhw,by-bhh,bw,bh);
+  ctx.fillStyle=spotCol;ctx.fillRect(bx-bhw*0.5,by-bhh*0.3,bhw*0.35,bhh*0.35);ctx.fillRect(bx+bhw*0.1,by+bhh*0.2,bhw*0.3,bhh*0.3);
+  // legs
+  ctx.fillStyle=legCol;
+  ctx.fillRect(bx-bhw-3,by-bhh+1,5,bh*0.38);ctx.fillRect(bx+bhw-2,by-bhh+1,5,bh*0.38);
+  ctx.fillRect(bx-bhw-3,by+bhh-bh*0.28,5,bh*0.38);ctx.fillRect(bx+bhw-2,by+bhh-bh*0.28,5,bh*0.38);
+  // head
+  ctx.fillStyle=headCol;ctx.fillRect(bx-bw*0.45,by-bhh-bh*0.55,bw*0.9,bh*0.6);
+  // snout
+  ctx.fillStyle=snoutCol;ctx.fillRect(bx-bhw-bw*0.18,by-bhh-bh*0.22,bw*0.38,bh*0.32);
+  ctx.fillStyle=nostrilC;ctx.fillRect(bx-bhw-bw*0.15,by-bhh-bh*0.14,bw*0.1,bh*0.1);ctx.fillRect(bx-bhw+bw*0.02,by-bhh-bh*0.14,bw*0.1,bh*0.1);
+  // eyes: adults have white+black, babies have glowing green
+  if(isAdult){
+    ctx.fillStyle='#fff';ctx.fillRect(bx+bw*0.1,by-bhh-bh*0.5,bw*0.25,bh*0.35);
+    ctx.fillStyle='#111';ctx.fillRect(bx+bw*0.14,by-bhh-bh*0.46,bw*0.18,bh*0.28);
+    ctx.fillStyle='#fff';ctx.fillRect(bx+bw*0.27,by-bhh-bh*0.46,bw*0.06,bh*0.1);
+  } else {
+    ctx.fillStyle='#00ee44';ctx.fillRect(bx+bw*0.1,by-bhh-bh*0.5,bw*0.27,bh*0.35);
+    ctx.fillStyle='#004400';ctx.fillRect(bx+bw*0.14,by-bhh-bh*0.46,bw*0.18,bh*0.28);
+    ctx.fillStyle='#88ffaa';ctx.fillRect(bx+bw*0.27,by-bhh-bh*0.46,bw*0.07,bh*0.12);
+  }
+  // spikes
+  ctx.fillStyle=spikeCol;
+  ctx.beginPath();ctx.moveTo(bx+bhw,by-bhh*0.55);ctx.lineTo(bx+bhw+bw*0.32,by-bhh*0.8);ctx.lineTo(bx+bhw,by-bhh*0.1);ctx.fill();
+  ctx.beginPath();ctx.moveTo(bx+bhw,by+bhh*0.05);ctx.lineTo(bx+bhw+bw*0.32,by-bhh*0.2);ctx.lineTo(bx+bhw,by+bhh*0.45);ctx.fill();
+  // tail
+  ctx.fillStyle=tailCol;
+  ctx.fillRect(bx-bw*0.18,by+bhh,bw*0.42,bh*0.28);
+  ctx.fillRect(bx-bw*0.14,by+bhh+bh*0.26,bw*0.32,bh*0.22);
+  ctx.fillRect(bx-bw*0.1, by+bhh+bh*0.45,bw*0.24,bh*0.18);
+}
+
+function drawBigDino(){
+  var dx=dino.x-cam.x,dy=dino.y-cam.y,hw=dino.w/2,hh=dino.h/2;
+  ctx.fillStyle='rgba(0,0,0,0.22)';
+  ctx.beginPath();ctx.ellipse(dx,dy+hh+4,hw+4,6,0,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#3a9e3a';ctx.fillRect(dx-hw,dy-hh,dino.w,dino.h);
+  ctx.fillStyle='#1a1a1a';
+  ctx.fillRect(dx-6,dy-5,5,5);ctx.fillRect(dx+2,dy+3,5,5);ctx.fillRect(dx-7,dy+6,4,4);
+  ctx.fillStyle='#2a7a2a';
+  ctx.fillRect(dx-hw-6,dy-hh+2,8,10);ctx.fillRect(dx+hw-2,dy-hh+2,8,10);
+  ctx.fillRect(dx-hw-5,dy+hh-8,8,10);ctx.fillRect(dx+hw-3,dy+hh-8,8,10);
+  ctx.fillStyle='#4ab84a';ctx.fillRect(dx-10,dy-hh-14,22,16);
+  ctx.fillStyle='#3a9e3a';ctx.fillRect(dx-16,dy-hh-8,10,8);
+  ctx.fillStyle='#1a5a1a';ctx.fillRect(dx-15,dy-hh-6,3,2);ctx.fillRect(dx-10,dy-hh-6,3,2);
+  ctx.fillStyle='#fff';ctx.fillRect(dx+3,dy-hh-11,7,7);
+  ctx.fillStyle='#111';ctx.fillRect(dx+4,dy-hh-10,5,5);
+  ctx.fillStyle='#fff';ctx.fillRect(dx+8,dy-hh-10,1.5,1.5);
+  ctx.fillStyle='#1a5a1a';
+  ctx.beginPath();ctx.moveTo(dx+hw,dy-8); ctx.lineTo(dx+hw+9,dy-12);ctx.lineTo(dx+hw,dy-2); ctx.fill();
+  ctx.beginPath();ctx.moveTo(dx+hw,dy+1); ctx.lineTo(dx+hw+9,dy-3); ctx.lineTo(dx+hw,dy+7); ctx.fill();
+  ctx.beginPath();ctx.moveTo(dx+hw,dy+8); ctx.lineTo(dx+hw+8,dy+4); ctx.lineTo(dx+hw,dy+14);ctx.fill();
+  ctx.fillStyle='#2a7a2a';
+  ctx.fillRect(dx-5,dy+hh,10,8);ctx.fillRect(dx-4,dy+hh+7,8,6);ctx.fillRect(dx-3,dy+hh+12,6,5);
+}
+
+function draw(){
+  ctx.clearRect(0,0,W,H);
+  // Grass
+  ctx.fillStyle='#3d7a36';ctx.fillRect(0,0,W,H);
+  // Roads
+  ctx.fillStyle='#666';
+  streetY.forEach(function(sy){ctx.fillRect(0,sy-cam.y,W,TILE);});
+  streetX.forEach(function(sx){ctx.fillRect(sx-cam.x,0,TILE,H);});
+  // Road markings
+  ctx.strokeStyle='#f5c518';ctx.lineWidth=2;ctx.setLineDash([18,12]);
+  streetY.forEach(function(sy){ctx.beginPath();ctx.moveTo(0,sy-cam.y+TILE/2);ctx.lineTo(W,sy-cam.y+TILE/2);ctx.stroke();});
+  streetX.forEach(function(sx){ctx.beginPath();ctx.moveTo(sx-cam.x+TILE/2,0);ctx.lineTo(sx-cam.x+TILE/2,H);ctx.stroke();});
+  ctx.setLineDash([]);
+  // Kerbs
+  ctx.fillStyle='#888';
+  streetY.forEach(function(sy){ctx.fillRect(0,sy-cam.y,W,3);ctx.fillRect(0,sy-cam.y+TILE-3,W,3);});
+  streetX.forEach(function(sx){ctx.fillRect(sx-cam.x,0,3,H);ctx.fillRect(sx-cam.x+TILE-3,0,3,H);});
+  // Buildings
+  buildings.forEach(function(b){
+    var sx=b.x-cam.x,sy=b.y-cam.y;
+    if(sx+b.w<0||sx>W||sy+b.h<0||sy>H) return;
+    ctx.fillStyle=b.col;ctx.fillRect(sx,sy,b.w,b.h);
+    ctx.fillStyle='rgba(0,0,0,0.25)';ctx.fillRect(sx,sy,b.w,8);ctx.fillRect(sx,sy,8,b.h);
+    ctx.fillStyle='rgba(255,240,80,0.6)';
+    for(var wy=12;wy<b.h-12;wy+=18) for(var wx=12;wx<b.w-12;wx+=16)
+      if((wx*wy)%7!==0) ctx.fillRect(sx+wx,sy+wy,9,8);
+  });
+  // Trees
+  trees.forEach(function(t){
+    var tx=t.x-cam.x,ty=t.y-cam.y;
+    if(tx<-30||tx>W+30||ty<-30||ty>H+30) return;
+    ctx.fillStyle='#6b3a1f';ctx.fillRect(tx-5,ty-5,10,10);
+    ctx.fillStyle='#1f7a1f';ctx.beginPath();ctx.arc(tx,ty,17,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#28a028';ctx.beginPath();ctx.arc(tx-4,ty-5,10,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#33c033';ctx.beginPath();ctx.arc(tx+3,ty-3,7,0,Math.PI*2);ctx.fill();
+    if(t.egg&&!t.got){
+      ctx.strokeStyle='#a0522d';ctx.lineWidth=1.5;
+      ctx.beginPath();ctx.moveTo(tx+4,ty-16);ctx.lineTo(tx+18,ty-26);ctx.stroke();
+      ctx.fillStyle='#d4a056';ctx.fillRect(tx+10,ty-36,18,13);
+      ctx.strokeStyle='#8a5c20';ctx.lineWidth=1;ctx.strokeRect(tx+10,ty-36,18,13);
+      ctx.fillStyle='#fffde0';ctx.beginPath();ctx.ellipse(tx+19,ty-30,5,6,0,0,Math.PI*2);ctx.fill();
+      ctx.strokeStyle='#ccc';ctx.lineWidth=0.8;ctx.stroke();
+    }
+  });
+  // Cups
+  cups.forEach(function(cu){
+    if(cu.got) return;
+    var cx=cu.x-cam.x,cy=cu.y-cam.y;
+    if(cx<-20||cx>W+20||cy<-20||cy>H+20) return;
+    ctx.fillStyle='#FFD700';
+    ctx.beginPath();
+    ctx.moveTo(cx-11,cy-13);ctx.lineTo(cx+11,cy-13);ctx.lineTo(cx+8,cy+2);ctx.lineTo(cx+12,cy+2);
+    ctx.lineTo(cx+12,cy+7);ctx.lineTo(cx-12,cy+7);ctx.lineTo(cx-12,cy+2);ctx.lineTo(cx-8,cy+2);
+    ctx.closePath();ctx.fill();
+    ctx.strokeStyle='#c8960a';ctx.lineWidth=1.5;ctx.stroke();
+    ctx.fillRect(cx-12,cy+6,24,4);
+    ctx.fillStyle='rgba(255,255,255,0.35)';ctx.beginPath();ctx.ellipse(cx-3,cy-5,2.5,5,0.3,0,Math.PI*2);ctx.fill();
+  });
+  // Pits
+  pits.forEach(function(pit){
+    if(!pit.active) return;
+    var px=pit.x-cam.x,py=pit.y-cam.y,r=pit.r;
+    if(px<-80||px>W+80||py<-80||py>H+80) return;
+    ctx.fillStyle='#0a0a0a';ctx.beginPath();ctx.ellipse(px,py,r,r*0.65,0,0,Math.PI*2);ctx.fill();
+    ctx.strokeStyle='#8B6914';ctx.lineWidth=6;ctx.beginPath();ctx.ellipse(px,py,r,r*0.65,0,0,Math.PI*2);ctx.stroke();
+    ctx.strokeStyle='#a07830';ctx.lineWidth=3;ctx.beginPath();ctx.ellipse(px,py,r+5,r*0.65+4,0,0,Math.PI*2);ctx.stroke();
+    ctx.strokeStyle='#1a1a1a';ctx.lineWidth=2;
+    ctx.beginPath();ctx.ellipse(px,py,r*0.7,r*0.65*0.7,0,0,Math.PI*2);ctx.stroke();
+    ctx.beginPath();ctx.ellipse(px,py,r*0.4,r*0.65*0.4,0,0,Math.PI*2);ctx.stroke();
+    ctx.font='bold 18px Arial';ctx.textAlign='center';ctx.fillText('\u26A0\uFE0F',px,py-r*0.65-10);
+    var t2=Date.now()/600,alpha=0.3+0.3*Math.sin(t2);
+    ctx.strokeStyle='rgba(255,80,80,'+alpha+')';ctx.lineWidth=4;
+    ctx.beginPath();ctx.ellipse(px,py,r+10,r*0.65+8,0,0,Math.PI*2);ctx.stroke();
+  });
+  // Baby dinos (draw back to front so first baby is closest to big dino)
+  for(var bi=babies.length-1;bi>=0;bi--){
+    var tidx=trail.length-1-babies[bi].offset;
+    if(tidx<0) tidx=0;
+    if(trail.length>0) drawBabyDino(trail[tidx].x,trail[tidx].y,babies[bi].adult);
+  }
+  // Big dino on top
+  drawBigDino();
+  // Minimap
+  var mw=80,mh=80,mx=W-88,my=8;
+  ctx.fillStyle='rgba(0,0,0,0.6)';ctx.fillRect(mx,my,mw,mh);
+  ctx.strokeStyle='#888';ctx.lineWidth=1;ctx.strokeRect(mx,my,mw,mh);
+  var sc=mw/WORLD_W;
+  ctx.fillStyle='#555';
+  streetY.forEach(function(sy){ctx.fillRect(mx,my+sy*sc,mw,TILE*sc);});
+  streetX.forEach(function(sx){ctx.fillRect(mx+sx*sc,my,TILE*sc,mh);});
+  eggTrees.filter(function(t){return !t.got;}).forEach(function(t){ctx.fillStyle='#ffe97a';ctx.fillRect(mx+t.x*sc-2,my+t.y*sc-2,4,4);});
+  cups.filter(function(cu){return !cu.got;}).forEach(function(cu){ctx.fillStyle='#FFD700';ctx.fillRect(mx+cu.x*sc-2,my+cu.y*sc-2,4,4);});
+  pits.filter(function(p){return p.active;}).forEach(function(p){ctx.fillStyle='#ff4444';ctx.fillRect(mx+p.x*sc-3,my+p.y*sc-3,6,6);});
+  ctx.fillStyle='#4ade4a';ctx.beginPath();ctx.arc(mx+dino.x*sc,my+dino.y*sc,5,0,Math.PI*2);ctx.fill();
+}
+
+function loop(){
+  update();collect();checkPits();draw();
+  requestAnimationFrame(loop);
+}
+loop();
+</script>
+</body>
+</html>
