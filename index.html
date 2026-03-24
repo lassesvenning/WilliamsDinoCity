@@ -4,127 +4,473 @@
 <meta charset="UTF-8">
 <title>William's Dino City!</title>
 <style>
-  * { margin:0; padding:0; box-sizing:border-box; }
-  body { background:#111; font-family:Arial,sans-serif; display:flex; flex-direction:column; align-items:center; padding:8px; }
-  h1 { color:#fff; font-size:20px; margin:6px 0 4px; }
-  #hud { color:#fff; font-size:15px; font-weight:bold; margin-bottom:4px; }
-  canvas { display:block; border:3px solid #4CAF50; border-radius:6px; }
-  #info { color:#aaa; font-size:13px; margin-top:5px; text-align:center; }
-  #dpad { display:grid; grid-template-columns:64px 64px 64px; grid-template-rows:64px 64px; gap:5px; margin-top:8px; }
-  .db { width:64px; height:64px; font-size:30px; border:none; border-radius:10px; background:#4CAF50; color:#fff; cursor:pointer; font-weight:bold; touch-action:none; user-select:none; }
-  .db:active { background:#2d7a2d; }
-  .sp { visibility:hidden; width:64px; height:64px; }
-  #mathBox { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.75); align-items:center; justify-content:center; z-index:100; }
-  #mathBox.show { display:flex; }
-  #mathInner { background:#1a3a5c; border:5px solid #f5c518; border-radius:24px; padding:24px 28px; text-align:center; max-width:340px; width:90%; }
-  #mathInner .pit-icon { font-size:50px; margin-bottom:4px; }
-  #mathInner h2 { color:#f5c518; font-size:22px; margin-bottom:8px; }
-  .finger-row { display:flex; align-items:center; justify-content:center; gap:8px; margin:6px 0; flex-wrap:nowrap; }
-  .finger-group { display:flex; flex-direction:column; align-items:center; gap:2px; }
-  .finger-num { color:#fff; font-size:40px; font-weight:bold; line-height:1; }
-  .finger-emoji { font-size:22px; line-height:1.3; max-width:90px; text-align:center; }
-  .finger-plus { color:#f5c518; font-size:34px; font-weight:bold; }
-  .finger-eq   { color:#f5c518; font-size:34px; font-weight:bold; }
-  .finger-q    { color:#fff;    font-size:40px; font-weight:bold; }
-  #answerBtns { display:flex; gap:14px; justify-content:center; flex-wrap:wrap; margin-top:14px; }
-  .ans-btn { width:80px; height:80px; font-size:30px; font-weight:bold; border:none; border-radius:16px; cursor:pointer; background:#2980b9; color:#fff; transition:transform 0.1s; }
-  .ans-btn:hover { transform:scale(1.1); background:#3498db; }
-  #mathResult { font-size:28px; margin-top:14px; min-height:36px; }
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:#111; font-family:Arial,sans-serif; display:flex; flex-direction:column; align-items:center; padding:8px; user-select:none; }
+h1 { color:#fff; font-size:20px; margin:6px 0 2px; }
+#hud { color:#fff; font-size:14px; font-weight:bold; margin-bottom:3px; display:flex; gap:14px; flex-wrap:wrap; justify-content:center; }
+#levelBanner { color:#f5c518; font-size:13px; font-weight:bold; margin-bottom:3px; min-height:18px; text-align:center; }
+canvas { display:block; border:3px solid #4CAF50; border-radius:6px; }
+#info { color:#aaa; font-size:12px; margin-top:4px; text-align:center; min-height:16px; }
+#dpad { display:grid; grid-template-columns:60px 60px 60px; grid-template-rows:60px 60px; gap:4px; margin-top:6px; }
+.db { width:60px; height:60px; font-size:28px; border:none; border-radius:10px; background:#4CAF50; color:#fff; cursor:pointer; font-weight:bold; touch-action:none; }
+.db:active { background:#2d7a2d; }
+.sp { visibility:hidden; width:60px; height:60px; }
+/* overlays */
+#mathBox { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.78); align-items:center; justify-content:center; z-index:100; }
+#mathBox.show { display:flex; }
+#mathInner { background:#1a3a5c; border:5px solid #f5c518; border-radius:24px; padding:22px 26px; text-align:center; max-width:320px; width:90%; }
+#mathInner .pi { font-size:46px; margin-bottom:3px; }
+#mathInner h2 { color:#f5c518; font-size:20px; margin-bottom:6px; }
+.frow { display:flex; align-items:center; justify-content:center; gap:8px; margin:6px 0; }
+.fgrp { display:flex; flex-direction:column; align-items:center; gap:2px; }
+.fnum { color:#fff; font-size:38px; font-weight:bold; line-height:1; }
+.femo { font-size:20px; line-height:1.3; max-width:80px; text-align:center; }
+.fpl,.feq { color:#f5c518; font-size:32px; font-weight:bold; }
+.fq  { color:#fff; font-size:38px; font-weight:bold; }
+#abts { display:flex; gap:12px; justify-content:center; flex-wrap:wrap; margin-top:12px; }
+.ab { width:76px; height:76px; font-size:28px; font-weight:bold; border:none; border-radius:14px; cursor:pointer; background:#2980b9; color:#fff; }
+.ab:hover { background:#3498db; transform:scale(1.08); }
+#mres { font-size:26px; margin-top:12px; min-height:32px; }
+/* level up overlay */
+#lvlUp { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.82); align-items:center; justify-content:center; z-index:200; }
+#lvlUp.show { display:flex; }
+#lvlBox { background:#1a3a1a; border:5px solid #4ade4a; border-radius:24px; padding:30px 40px; text-align:center; color:#fff; max-width:340px; }
+#lvlBox h2 { font-size:30px; color:#4ade4a; margin-bottom:10px; }
+#lvlBox p  { font-size:15px; color:#ccc; margin:6px 0; }
+#lvlBtn { margin-top:16px; padding:12px 32px; font-size:18px; border-radius:10px; border:none; background:#4CAF50; color:#fff; cursor:pointer; font-weight:700; }
+/* building interior overlay */
+#buildingView { display:none; position:fixed; inset:0; background:#111; z-index:150; }
+#buildingView.show { display:flex; flex-direction:column; align-items:center; padding:8px; }
+#bvHud { color:#fff; font-size:14px; font-weight:bold; margin-bottom:3px; }
+#bvCanvas { border:3px solid #8e44ad; border-radius:6px; }
+#bvExit { margin-top:6px; padding:8px 24px; font-size:15px; border-radius:8px; border:none; background:#8e44ad; color:#fff; cursor:pointer; font-weight:bold; }
 </style>
 </head>
 <body>
-<h1>William's Dino City!</h1>
-<div id="hud">Eggs: <span id="eN">0</span> &nbsp;|&nbsp; Cups: <span id="cN">0</span> &nbsp;|&nbsp; Score: <span id="sN">0</span></div>
-<canvas id="gc" width="560" height="420"></canvas>
-<div id="info">Arrow keys or buttons to move &mdash; watch out for the pits!</div>
-<div id="dpad">
-  <div class="sp"></div>
-  <button class="db" id="bU">&#9650;</button>
-  <div class="sp"></div>
-  <button class="db" id="bL">&#9668;</button>
-  <button class="db" id="bD">&#9660;</button>
-  <button class="db" id="bR">&#9658;</button>
+<h1>&#x1F995; William's Dino City!</h1>
+<div id="hud">
+  <span>&#x1F95A; <span id="eN">0</span></span>
+  <span>&#x1F3C6; <span id="cN">0</span></span>
+  <span>&#x2B50; <span id="sN">0</span></span>
+  <span>Level <span id="lvN">1</span></span>
 </div>
+<div id="levelBanner" id="lvlBanner"></div>
+<canvas id="gc" width="560" height="420"></canvas>
+<div id="info">Arrow keys or buttons &#8212; collect everything!</div>
+<div id="dpad">
+  <div class="sp"></div><button class="db" id="bU">&#9650;</button><div class="sp"></div>
+  <button class="db" id="bL">&#9668;</button><button class="db" id="bD">&#9660;</button><button class="db" id="bR">&#9658;</button>
+</div>
+
+<!-- Math popup -->
 <div id="mathBox">
   <div id="mathInner">
-    <div class="pit-icon">&#x1F573;&#xFE0F;</div>
-    <h2>Uh oh! A big pit!<br>Answer to jump over!</h2>
-    <div id="fingerDisplay"></div>
-    <div id="answerBtns"></div>
-    <div id="mathResult"></div>
+    <div class="pi">&#x1F573;&#xFE0F;</div>
+    <h2>Big pit! Solve to jump!</h2>
+    <div id="fdisp"></div>
+    <div id="abts"></div>
+    <div id="mres"></div>
   </div>
 </div>
+
+<!-- Level up overlay -->
+<div id="lvlUp">
+  <div id="lvlBox">
+    <h2 id="lvlTitle">&#x1F389; Level Up!</h2>
+    <p id="lvlDesc">Get ready for the next level!</p>
+    <button id="lvlBtn">Let's go! &#x1F995;</button>
+  </div>
+</div>
+
+<!-- Building interior -->
+<div id="buildingView">
+  <div id="bvHud">&#x1F4A0; Diamonds: <span id="bvD">0</span> &nbsp;|&nbsp; &#x26A0;&#xFE0F; Watch out for ninjas!</div>
+  <canvas id="bvCanvas" width="560" height="420"></canvas>
+  <button id="bvExit">&#x1F6AA; Exit Building</button>
+</div>
+
 <script>
-var c=document.getElementById('gc'),ctx=c.getContext('2d'),W=560,H=420;
+// ============================================================
+// CONSTANTS & WORLD
+// ============================================================
+var CW=560,CH=420;
+var c=document.getElementById('gc'),ctx=c.getContext('2d');
 var TILE=80,STEP=280,COLS_N=8,ROWS_N=8;
 var streetX=[],streetY=[];
 for(var i=0;i<COLS_N;i++) streetX.push(i*STEP);
 for(var i=0;i<ROWS_N;i++) streetY.push(i*STEP);
 var WORLD_W=(COLS_N-1)*STEP+TILE, WORLD_H=(ROWS_N-1)*STEP+TILE;
 
-function onRoad(wx,wy){
-  for(var i=0;i<streetX.length;i++) if(wx>=streetX[i]&&wx<=streetX[i]+TILE) return true;
-  for(var i=0;i<streetY.length;i++) if(wy>=streetY[i]&&wy<=streetY[i]+TILE) return true;
+// Special lots: row/col indices of blocks that the dino can enter
+// [row, col] where row=0..ROWS_N-2, col=0..COLS_N-2
+var HOME_LOT   = [3,3]; // centre block = William's home
+var PARK_LOTS  = [[1,1],[1,5],[4,1],[5,4],[2,6],[6,2]]; // park/pond blocks
+
+function lotBounds(row,col){
+  return {
+    x1: streetX[col]+TILE, y1: streetY[row]+TILE,
+    x2: streetX[col+1],    y2: streetY[row+1]
+  };
+}
+function inLot(wx,wy,row,col){
+  var b=lotBounds(row,col);
+  return wx>=b.x1&&wx<=b.x2&&wy>=b.y1&&wy<=b.y2;
+}
+function inHomeLot(wx,wy){ return inLot(wx,wy,HOME_LOT[0],HOME_LOT[1]); }
+function inAnyPark(wx,wy){
+  for(var i=0;i<PARK_LOTS.length;i++) if(inLot(wx,wy,PARK_LOTS[i][0],PARK_LOTS[i][1])) return true;
   return false;
 }
-
-var BCOLS=['#c0392b','#2980b9','#8e44ad','#27ae60','#d35400','#e67e22','#16a085','#7f8c8d','#c0392b','#1abc9c'];
-var buildings=[];
-for(var r=0;r<ROWS_N-1;r++) for(var cc=0;cc<COLS_N-1;cc++){
-  var bx=streetX[cc]+TILE+6,by=streetY[r]+TILE+6,bw=STEP-TILE-12,bh=STEP-TILE-12;
-  if(bw>10&&bh>10) buildings.push({x:bx,y:by,w:bw,h:bh,col:BCOLS[(r*(COLS_N-1)+cc)%BCOLS.length]});
+function onRoad(wx,wy){
+  var pad=4; // small buffer so dino slides smoothly along road edges
+  for(var i=0;i<streetX.length;i++) if(wx>=streetX[i]-pad&&wx<=streetX[i]+TILE+pad) return true;
+  for(var i=0;i<streetY.length;i++) if(wy>=streetY[i]-pad&&wy<=streetY[i]+TILE+pad) return true;
+  return false;
+}
+function canWalk(wx,wy){
+  return onRoad(wx,wy)||inHomeLot(wx,wy)||inAnyPark(wx,wy);
 }
 
-var trees=[];
-for(var r=0;r<ROWS_N-1;r++) for(var cc=0;cc<COLS_N-1;cc++){
-  var bx=streetX[cc]+TILE+20,by=streetY[r]+TILE+20,bx2=streetX[cc+1]-20,by2=streetY[r+1]-20;
-  trees.push({x:bx, y:by,  egg:Math.random()<0.7,got:false});
-  trees.push({x:bx2,y:by,  egg:Math.random()<0.7,got:false});
-  trees.push({x:bx, y:by2, egg:Math.random()<0.7,got:false});
-  trees.push({x:bx2,y:by2, egg:Math.random()<0.7,got:false});
-}
-var eggTrees=trees.filter(function(t){return t.egg;});
+// Home lot centre
+var hb=lotBounds(HOME_LOT[0],HOME_LOT[1]);
+var HOME_X=(hb.x1+hb.x2)/2, HOME_Y=(hb.y1+hb.y2)/2;
+function distSq(ax,ay,bx,by){var dx=ax-bx,dy=ay-by;return dx*dx+dy*dy;}
 
-var cups=[];
-for(var i=0;i<20;i++){
-  var ri=Math.floor(Math.random()*ROWS_N);
-  cups.push({x:100+Math.random()*(WORLD_W-200),y:streetY[ri]+TILE/2,got:false});
-}
-
-var PIT_R=32,pits=[];
-[[1,STEP*1.5],[2,STEP*3.5],[3,STEP*2.5],[4,STEP*1.5],[5,STEP*4.5],[6,STEP*3.0]].forEach(function(p){
-  var py=streetY[p[0]]+TILE/2;
-  if(p[1]>60&&p[1]<WORLD_W-60) pits.push({x:p[1],y:py,r:PIT_R,active:true});
-});
-[[2,STEP*2.5],[4,STEP*4.0],[5,STEP*1.5]].forEach(function(p){
-  var px=streetX[p[0]]+TILE/2;
-  if(p[1]>60&&p[1]<WORLD_H-60) pits.push({x:px,y:p[1],r:PIT_R,active:true});
-});
+// ============================================================
+// GAME STATE
+// ============================================================
+var currentLevel=1;
+var score=0,eggCount=0,cupCount=0,lastBabyScore=0;
+var trail=[],BABY_GAP=5,babies=[];
+var inPit=false,mathLocked=false,currentPit=null;
+var inHome=false,inBuilding=false;
+var inPond=false; // dino is inside a pond area
+var levelObjects={}; // holds per-level entities
 
 var dino={x:streetX[2]+TILE/2,y:streetY[2]+TILE/2,spd:4,w:28,h:28};
 var cam={x:0,y:0};
-var score=0,eggCount=0,cupCount=0,lastBabyScore=0;
 
-// ---- BABY DINO TRAIL SYSTEM ----
-var trail=[];
-var BABY_GAP=5;
-var babies=[];
+// ============================================================
+// LEVEL DESCRIPTIONS
+// ============================================================
+var LEVEL_INFO=[
+  {num:1,title:'Level 1 - Dino City',    desc:'Collect eggs and golden cups! Solve math puzzles at the pits!'},
+  {num:2,title:'Level 2 - Pond Life',     desc:'New ponds in the city! Collect fish but dodge the sharks!'},
+  {num:3,title:'Level 3 - Ninja Tower',   desc:'Enter buildings to find diamonds! Watch out for ninjas inside!'},
+  {num:4,title:'Level 4 - Night City',    desc:'The city goes dark! Glowing fireflies light your way!'},
+  {num:5,title:'Level 5 - Dino Market',  desc:'Stalls have appeared! Buy power-ups with your golden cups!'},
+  {num:6,title:'Level 6 - Volcano',       desc:'A volcano erupts! Dodge falling rocks while collecting gems!'},
+  {num:7,title:'Level 7 - Dinosaur Park', desc:'Other dinos roam the city! Feed them eggs to make friends!'},
+  {num:8,title:'Level 8 - Rainbow Storm', desc:'A rainbow storm! Collect coloured crystals before they disappear!'},
+  {num:9,title:'Level 9 - Space Dino',    desc:'Rockets have landed! Collect moon rocks and dodge asteroids!'},
+  {num:10,title:'Level 10 - Dino King!',  desc:'The final challenge! Everything at once! Become the Dino King!'},
+];
 
-function spawnBaby(){
-  // Graduate the most recent baby to adult (green) before adding new tiny baby
-  if(babies.length>0) babies[babies.length-1].adult=true;
-  babies.push({offset:(babies.length+1)*BABY_GAP, adult:false});
-  var info=document.getElementById('info');
-  info.style.color='#4ade4a';
-  info.textContent=babies.length+' dino'+(babies.length>1?'s':'')+' following you!';
-  setTimeout(function(){
-    info.style.color='#aaa';
-    info.textContent='Arrow keys or buttons to move \u2014 watch out for the pits!';
-  },2500);
+// ============================================================
+// BUILDING COLORS & ENTERABLE BUILDINGS (level 3+)
+// ============================================================
+var BCOLS=['#c0392b','#2980b9','#8e44ad','#27ae60','#d35400','#e67e22','#16a085','#7f8c8d','#c0392b','#1abc9c'];
+var buildings=[];
+for(var r=0;r<ROWS_N-1;r++) for(var cc=0;cc<COLS_N-1;cc++){
+  // skip home lot and park lots - those get special treatment
+  var isHome=(r===HOME_LOT[0]&&cc===HOME_LOT[1]);
+  var isPark=PARK_LOTS.some(function(pl){return pl[0]===r&&pl[1]===cc;});
+  if(isHome||isPark) continue;
+  var bx=streetX[cc]+TILE+6,by=streetY[r]+TILE+6,bw=STEP-TILE-12,bh=STEP-TILE-12;
+  if(bw>10&&bh>10){
+    var enterable=(r+cc)%3===0;
+    buildings.push({x:bx,y:by,w:bw,h:bh,col:BCOLS[(r*(COLS_N-1)+cc)%BCOLS.length],enterable:enterable,cx:bx+bw/2,cy:by+bh/2});
+  }
 }
 
-// ---- MATH SYSTEM ----
-var inPit=false,currentPit=null,mathLocked=false;
+// ============================================================
+// GENERATE LEVEL OBJECTS
+// ============================================================
+// Helper: random point on a street
+function randStreetPt(){
+  var ri=Math.floor(Math.random()*ROWS_N);
+  return {x:100+Math.random()*(WORLD_W-200), y:streetY[ri]+TILE/2};
+}
+// Helper: random point inside a lot
+function randLotPt(row,col){
+  var b=lotBounds(row,col);
+  return {x:b.x1+10+Math.random()*(b.x2-b.x1-20), y:b.y1+10+Math.random()*(b.y2-b.y1-20)};
+}
+// Helper: build a pond object from a park lot index
+function makePond(pi){
+  var pl=PARK_LOTS[pi];
+  var pb=lotBounds(pl[0],pl[1]);
+  var pcx=(pb.x1+pb.x2)/2, pcy=(pb.y1+pb.y2)/2;
+  var prx=Math.min((pb.x2-pb.x1)*0.38,60);
+  var pry=Math.min((pb.y2-pb.y1)*0.32,44);
+  return {x:pcx,y:pcy,rx:prx,ry:pry,row:pl[0],col:pl[1]};
+}
+function addFish(obj,pond,pi,count,spd){
+  for(var f=0;f<count;f++){
+    obj.fish.push({px:pond.x,py:pond.y,rx:pond.rx*0.62,ry:pond.ry*0.62,
+      angle:Math.random()*Math.PI*2,speed:spd||0.018+Math.random()*0.012,
+      got:false,pondIdx:pi});
+  }
+}
+function addShark(obj,pond,pi,spd){
+  obj.sharks.push({px:pond.x,py:pond.y,rx:pond.rx*0.72,ry:pond.ry*0.72,
+    angle:Math.random()*Math.PI*2,speed:spd||0.024,pondIdx:pi});
+}
+
+function generateLevel(lvl){
+  var obj={
+    trees:[], cups:[], pits:[],
+    ponds:[], fish:[], sharks:[],
+    enterableBuildings:[],
+    levelGems:[], hazards:[],
+    // per-level lot roles: what each park lot contains this level
+    // 'pond','carnival','volcano','garden','moonbase','market'
+    parkLotRoles:[],
+    score_target: lvl*1000
+  };
+
+  // ── TREES along road edges (all levels) ──────────────────────────────────
+  for(var r=0;r<ROWS_N;r++){
+    for(var tx2=140;tx2<WORLD_W-80;tx2+=110){
+      obj.trees.push({x:tx2, y:streetY[r]-30, egg:Math.random()<0.7, got:false});
+      obj.trees.push({x:tx2, y:streetY[r]+TILE+26, egg:Math.random()<0.7, got:false});
+    }
+  }
+  for(var cv=0;cv<COLS_N;cv++){
+    for(var ty2=140;ty2<WORLD_H-80;ty2+=110){
+      obj.trees.push({x:streetX[cv]-30, y:ty2, egg:Math.random()<0.7, got:false});
+      obj.trees.push({x:streetX[cv]+TILE+26, y:ty2, egg:Math.random()<0.7, got:false});
+    }
+  }
+
+  // ── CUPS on streets (all levels) ─────────────────────────────────────────
+  for(var i=0;i<20;i++){
+    var rp=randStreetPt();
+    obj.cups.push({x:rp.x,y:rp.y,got:false});
+  }
+
+  // ── PITS (all levels, harder from lvl4 onwards) ───────────────────────────
+  var PIT_R=32;
+  var pitRows=lvl>=6?[1,2,3,4,5,6]:[1,2,3,4,5,6];
+  var pitXMults=lvl>=4?[1.5,2.5,3.5,4.5,1.0,2.0,4.0]:[1.5,3.5,2.5,1.5,4.5,3.0];
+  for(var pi2=0;pi2<Math.min(pitRows.length,5+lvl);pi2++){
+    var pitPy=streetY[pitRows[pi2%pitRows.length]]+TILE/2;
+    var pitPx=STEP*pitXMults[pi2%pitXMults.length];
+    if(pitPx>80&&pitPx<WORLD_W-80) obj.pits.push({x:pitPx,y:pitPy,r:PIT_R,active:true});
+  }
+
+  // ── PARK LOT ROLES per level ──────────────────────────────────────────────
+  // Each level assigns a role to each of the 6 park lots.
+  // Roles: 'pond','garden','carnival','volcano','moonbase','market','ruins','jungle','storm','epic'
+  var rolesPerLevel = [
+    // lvl1: all lots are simple gardens (no ponds yet)
+    ['garden','garden','garden','garden','garden','garden'],
+    // lvl2: ponds appear in all parks
+    ['pond','pond','pond','pond','pond','pond'],
+    // lvl3: ponds stay, some become ruins (enterable buildings nearby glow)
+    ['pond','ruins','pond','ruins','pond','ruins'],
+    // lvl4: ponds + firefly gardens (dark theme)
+    ['pond','firefly','pond','firefly','pond','firefly'],
+    // lvl5: ponds + market stalls in lots
+    ['pond','market','pond','market','pond','market'],
+    // lvl6: ponds + volcano lava pools in some lots
+    ['pond','volcano','pond','volcano','pond','pond'],
+    // lvl7: ponds + jungle lots with friendly dinos inside
+    ['pond','jungle','pond','jungle','pond','pond'],
+    // lvl8: ponds + storm lots with crystals
+    ['pond','storm','pond','storm','pond','pond'],
+    // lvl9: ponds + moon base lots
+    ['pond','moonbase','pond','moonbase','pond','pond'],
+    // lvl10: all epic - ponds with more sharks, gem lots
+    ['epic','epic','epic','epic','epic','epic'],
+  ];
+  obj.parkLotRoles = rolesPerLevel[Math.min(lvl-1,9)];
+
+  // ── Generate content per park lot based on role ───────────────────────────
+  PARK_LOTS.forEach(function(pl,pi){
+    var role=obj.parkLotRoles[pi]||'garden';
+    var pb=lotBounds(pl[0],pl[1]);
+    var pcx=(pb.x1+pb.x2)/2, pcy=(pb.y1+pb.y2)/2;
+
+    if(role==='pond'||role==='ruins'||role==='epic'){
+      var pond=makePond(pi);
+      obj.ponds.push(pond);
+      var fishCount = role==='epic'?6:4;
+      var fishSpd   = role==='epic'?0.026:0.018+Math.random()*0.012;
+      addFish(obj,pond,pi,fishCount,fishSpd);
+      // sharks: every pond in lvl2, alternating in lvl3+, more in epic
+      if(role==='epic'||(lvl>=2&&pi%2===0)||lvl===2){
+        addShark(obj,pond,pi, role==='epic'?0.032:0.024);
+      }
+      if(role==='epic'){
+        // extra shark for epic
+        addShark(obj,pond,pi,0.036);
+      }
+    }
+
+    if(role==='garden'){
+      // extra eggs hidden in garden lots
+      for(var gi=0;gi<3;gi++){
+        var gp=randLotPt(pl[0],pl[1]);
+        obj.trees.push({x:gp.x,y:gp.y,egg:true,got:false,inLot:true});
+      }
+    }
+
+    if(role==='firefly'){
+      // fireflies flutter around the park lot
+      for(var fi=0;fi<5;fi++){
+        var fp=randLotPt(pl[0],pl[1]);
+        obj.levelGems.push({x:fp.x,y:fp.y,got:false,type:'firefly',
+          vx:(Math.random()-0.5)*0.8,vy:(Math.random()-0.5)*0.8,
+          bounds:{x1:pb.x1+10,y1:pb.y1+10,x2:pb.x2-10,y2:pb.y2-10}});
+      }
+    }
+
+    if(role==='market'){
+      // stall in this lot selling gems
+      obj.levelGems.push({x:pcx,y:pcy,got:false,type:'stall'});
+      for(var mi=0;mi<3;mi++){
+        var mp=randLotPt(pl[0],pl[1]);
+        obj.levelGems.push({x:mp.x,y:mp.y,got:false,type:'speedstar'});
+      }
+    }
+
+    if(role==='volcano'){
+      // lava pool replaces pond, drops rocks on dino
+      var pond2=makePond(pi);
+      pond2.lava=true;
+      obj.ponds.push(pond2);
+      for(var vi=0;vi<3;vi++){
+        obj.hazards.push({x:pond2.x+(Math.random()-0.5)*40,y:pond2.y,
+          vx:(Math.random()-0.5)*2,vy:-(1.5+Math.random()),r:16,type:'rock',
+          bounds:{x1:pb.x1,y1:pb.y1,x2:pb.x2,y2:pb.y2}});
+      }
+      // gems around the lava
+      for(var vgi=0;vgi<3;vgi++){
+        var vp=randLotPt(pl[0],pl[1]);
+        obj.levelGems.push({x:vp.x,y:vp.y,got:false,type:'gem'});
+      }
+    }
+
+    if(role==='jungle'){
+      // extra trees + friendly roaming dino in lot
+      for(var ji=0;ji<4;ji++){
+        var jp=randLotPt(pl[0],pl[1]);
+        obj.trees.push({x:jp.x,y:jp.y,egg:Math.random()<0.5,got:false,inLot:true});
+      }
+      var dinoCols2=['#e74c3c','#9b59b6','#f39c12','#1abc9c'];
+      obj.hazards.push({x:pcx,y:pcy,vx:0.8,vy:0,col:dinoCols2[pi%4],r:18,type:'frienddino',fed:false,
+        bounds:{x1:pb.x1+10,y1:pb.y1+10,x2:pb.x2-10,y2:pb.y2-10}});
+      for(var bni=0;bni<3;bni++){
+        var bnp=randLotPt(pl[0],pl[1]);
+        obj.levelGems.push({x:bnp.x,y:bnp.y,got:false,type:'banana'});
+      }
+    }
+
+    if(role==='storm'){
+      // crystals scattered in lot, lightning strikes
+      var crystalCols2=['#e74c3c','#f39c12','#2ecc71','#3498db','#9b59b6','#e91e8c'];
+      for(var si2=0;si2<5;si2++){
+        var sp2=randLotPt(pl[0],pl[1]);
+        obj.levelGems.push({x:sp2.x,y:sp2.y,col:crystalCols2[si2%6],got:false,type:'crystal',
+          lifetime:500+Math.random()*300,age:0});
+      }
+      obj.hazards.push({x:pcx,y:pcy,timer:0,interval:90+Math.random()*60,r:26,type:'lightning',
+        bounds:{x1:pb.x1,y1:pb.y1,x2:pb.x2,y2:pb.y2}});
+    }
+
+    if(role==='moonbase'){
+      // moon rocks + a rocket in the lot
+      for(var mbi=0;mbi<4;mbi++){
+        var mbp=randLotPt(pl[0],pl[1]);
+        obj.levelGems.push({x:mbp.x,y:mbp.y,got:false,type:'moonrock'});
+      }
+      // asteroid falls into this lot
+      obj.hazards.push({x:pcx,y:pb.y1-40,vx:(Math.random()-0.5)*1.5,vy:1.2,r:20,type:'asteroid',
+        bounds:{x1:pb.x1,y1:pb.y1,x2:pb.x2,y2:pb.y2}});
+    }
+  });
+
+  // ── Extra level-wide hazards / gems beyond the lots ───────────────────────
+
+  // Level 4: global fireflies on streets too
+  if(lvl===4){
+    for(var i=0;i<10;i++){
+      var rp2=randStreetPt();
+      obj.levelGems.push({x:rp2.x,y:rp2.y,got:false,type:'firefly',vx:0,vy:0});
+    }
+  }
+
+  // Level 5: extra speed stars on streets
+  if(lvl===5){
+    for(var i=0;i<10;i++){
+      var rp2=randStreetPt();
+      obj.levelGems.push({x:rp2.x,y:rp2.y,got:false,type:'speedstar'});
+    }
+  }
+
+  // Level 6: falling rocks on streets too
+  if(lvl===6){
+    for(var i=0;i<6;i++){
+      obj.hazards.push({x:Math.random()*WORLD_W,y:-40,
+        vx:(Math.random()-0.5)*1.5,vy:1.2+Math.random(),r:18,type:'rock'});
+    }
+  }
+
+  // Level 7: friendly dinos roaming streets
+  if(lvl===7){
+    var dc3=['#e74c3c','#9b59b6','#f39c12','#1abc9c'];
+    for(var i=0;i<4;i++){
+      var rp2=randStreetPt();
+      obj.hazards.push({x:rp2.x,y:rp2.y,vx:(Math.random()>0.5?1:-1)*1.2,vy:0,
+        col:dc3[i%4],r:20,type:'frienddino',fed:false});
+    }
+  }
+
+  // Level 8: lightning on streets
+  if(lvl===8){
+    for(var i=0;i<3;i++){
+      var rp2=randStreetPt();
+      obj.hazards.push({x:rp2.x,y:rp2.y,timer:0,interval:100+Math.random()*60,r:24,type:'lightning'});
+    }
+  }
+
+  // Level 9: asteroids raining globally
+  if(lvl===9){
+    for(var i=0;i<6;i++){
+      obj.hazards.push({x:Math.random()*WORLD_W,y:-40,
+        vx:(Math.random()-0.5)*2,vy:1.5+Math.random(),r:22,type:'asteroid'});
+    }
+    for(var i=0;i<8;i++){
+      var rp2=randStreetPt();
+      obj.levelGems.push({x:rp2.x,y:rp2.y,got:false,type:'moonrock'});
+    }
+  }
+
+  // Level 3+: enterable buildings
+  if(lvl>=3){
+    buildings.filter(function(b){return b.enterable;}).forEach(function(b){
+      obj.enterableBuildings.push({bx:b.x,by:b.y,bw:b.w,bh:b.h,col:b.col,cx:b.cx,cy:b.cy});
+    });
+  }
+
+  return obj;
+}
+
+var LO=generateLevel(1); // current level objects
+
+// ============================================================
+// BABY DINO SYSTEM
+// ============================================================
+function spawnBaby(){
+  if(babies.length>0) babies[babies.length-1].adult=true;
+  babies.push({offset:(babies.length+1)*BABY_GAP,adult:false});
+  showInfo(babies.length+' dino'+(babies.length>1?'s':'')+' following you! &#x1F995;',true);
+}
+
+// ============================================================
+// MATH SYSTEM
+// ============================================================
 var ALL_Q=[];
 for(var _a=1;_a<=4;_a++) for(var _b=1;_b<=4;_b++) if(_a+_b<=5) ALL_Q.push([_a,_b]);
 
@@ -135,41 +481,32 @@ function makeMath(){
   w.sort(function(){return Math.random()-0.5;});
   return {a:a,b:b,ans:ans,choices:[ans,w[0],w[1]].sort(function(){return Math.random()-0.5;})};
 }
-
 function fingersFor(n){
   var rows=[],row='';
-  for(var i=0;i<n;i++){
-    row+='\u261D\uFE0F';
-    if((i+1)%3===0){rows.push(row);row='';}
-  }
+  for(var i=0;i<n;i++){row+='\u261D\uFE0F';if((i+1)%3===0){rows.push(row);row='';}}
   if(row) rows.push(row);
   return rows.join('<br>');
 }
-
 function showMath(pit){
   if(mathLocked) return;
   mathLocked=inPit=true; currentPit=pit;
   var q=makeMath();
-  document.getElementById('mathResult').textContent='';
-  document.getElementById('fingerDisplay').innerHTML=
-    '<div class="finger-row">'+
-    '<div class="finger-group"><div class="finger-num">'+q.a+'</div><div class="finger-emoji">'+fingersFor(q.a)+'</div></div>'+
-    '<span class="finger-plus">+</span>'+
-    '<div class="finger-group"><div class="finger-num">'+q.b+'</div><div class="finger-emoji">'+fingersFor(q.b)+'</div></div>'+
-    '<span class="finger-eq">=</span><span class="finger-q">?</span></div>';
-  var bd=document.getElementById('answerBtns');
-  bd.innerHTML='';
+  document.getElementById('mres').textContent='';
+  document.getElementById('fdisp').innerHTML=
+    '<div class="frow">'+
+    '<div class="fgrp"><div class="fnum">'+q.a+'</div><div class="femo">'+fingersFor(q.a)+'</div></div>'+
+    '<span class="fpl">+</span>'+
+    '<div class="fgrp"><div class="fnum">'+q.b+'</div><div class="femo">'+fingersFor(q.b)+'</div></div>'+
+    '<span class="feq">=</span><span class="fq">?</span></div>';
+  var bd=document.getElementById('abts'); bd.innerHTML='';
   q.choices.forEach(function(ch){
-    var btn=document.createElement('button');
-    btn.className='ans-btn';
-    btn.innerHTML='<div style="font-size:28px;font-weight:bold">'+ch+'</div><div style="font-size:16px;line-height:1.3">'+fingersFor(ch)+'</div>';
+    var btn=document.createElement('button'); btn.className='ab';
+    btn.innerHTML='<div style="font-size:26px;font-weight:bold">'+ch+'</div><div style="font-size:14px">'+fingersFor(ch)+'</div>';
     btn.onclick=function(){
       if(ch===q.ans){
-        document.getElementById('mathResult').innerHTML='&#127881; YES! Well done!';
-        document.getElementById('mathResult').style.color='#4ade4a';
-        pit.active=false; score+=20;
-        document.getElementById('sN').textContent=score;
-        while(score>=lastBabyScore+100){lastBabyScore+=100;spawnBaby();}
+        document.getElementById('mres').innerHTML='&#x1F389; YES! Well done!';
+        document.getElementById('mres').style.color='#4ade4a';
+        pit.active=false; addScore(20);
         setTimeout(function(){
           document.getElementById('mathBox').classList.remove('show');
           var dirs=[{dx:0,dy:-90},{dx:0,dy:90},{dx:-90,dy:0},{dx:90,dy:0}];
@@ -180,10 +517,10 @@ function showMath(pit){
           inPit=false; mathLocked=false;
         },1000);
       } else {
-        document.getElementById('mathResult').innerHTML='&#10060; Try again!';
-        document.getElementById('mathResult').style.color='#ff6666';
+        document.getElementById('mres').innerHTML='&#x274C; Try again!';
+        document.getElementById('mres').style.color='#ff6666';
         btn.style.background='#c0392b';
-        setTimeout(function(){document.getElementById('mathResult').textContent='';btn.style.background='#2980b9';},800);
+        setTimeout(function(){document.getElementById('mres').textContent='';btn.style.background='#2980b9';},800);
       }
     };
     bd.appendChild(btn);
@@ -191,16 +528,48 @@ function showMath(pit){
   document.getElementById('mathBox').classList.add('show');
 }
 
-function checkPits(){
-  if(inPit) return;
-  pits.forEach(function(pit){
-    if(!pit.active) return;
-    var ddx=dino.x-pit.x,ddy=dino.y-pit.y;
-    if(Math.sqrt(ddx*ddx+ddy*ddy)<pit.r-4) showMath(pit);
-  });
+// ============================================================
+// SCORE
+// ============================================================
+function addScore(pts){
+  score+=pts;
+  document.getElementById('sN').textContent=score;
+  while(score>=lastBabyScore+100){lastBabyScore+=100;spawnBaby();}
+  if(score>=(currentLevel*1000)) triggerLevelUp();
 }
 
-// ---- INPUT ----
+// ============================================================
+// LEVEL UP
+// ============================================================
+var levelUpPending=false;
+function triggerLevelUp(){
+  if(levelUpPending||currentLevel>=10) return;
+  levelUpPending=true;
+  var next=currentLevel+1;
+  var info=LEVEL_INFO[next-1]||{title:'You Win!',desc:'William is the Dino King! &#x1F451;'};
+  document.getElementById('lvlTitle').innerHTML='&#x1F389; '+info.title;
+  document.getElementById('lvlDesc').textContent=info.desc;
+  document.getElementById('lvlUp').classList.add('show');
+}
+document.getElementById('lvlBtn').onclick=function(){
+  document.getElementById('lvlUp').classList.remove('show');
+  currentLevel++;
+  document.getElementById('lvN').textContent=currentLevel;
+  LO=generateLevel(currentLevel);
+  // reset babies for new level feel
+  trail=[]; babies=[];lastBabyScore=score;
+  eggCount=0; cupCount=0;
+  document.getElementById('eN').textContent=0;
+  document.getElementById('cN').textContent=0;
+  // teleport dino to start street
+  dino.x=streetX[2]+TILE/2; dino.y=streetY[2]+TILE/2;
+  levelUpPending=false;
+  showInfo(LEVEL_INFO[currentLevel-1].title+' - GO!',true);
+};
+
+// ============================================================
+// INPUT
+// ============================================================
 var K={up:false,down:false,left:false,right:false};
 window.onkeydown=function(e){
   if(e.key==='ArrowUp'   ||e.key==='w'){K.up=true;   e.preventDefault();}
@@ -223,9 +592,229 @@ function bindBtn(id,dir){
 }
 bindBtn('bU','up');bindBtn('bD','down');bindBtn('bL','left');bindBtn('bR','right');
 
-// ---- UPDATE ----
+// ============================================================
+// INFO BAR
+// ============================================================
+var infoTimer=null;
+function showInfo(msg,highlight){
+  var el=document.getElementById('info');
+  el.innerHTML=msg;
+  el.style.color=highlight?'#4ade4a':'#aaa';
+  if(infoTimer) clearTimeout(infoTimer);
+  infoTimer=setTimeout(function(){el.style.color='#aaa';el.textContent='Arrow keys or buttons \u2014 collect everything!';},2800);
+}
+
+// ============================================================
+// HOME BASE CHECK
+// ============================================================
+function nearHome(){
+  return inHomeLot(dino.x,dino.y);
+}
+
+// ============================================================
+// BUILDING INTERIOR (level 3+)
+// ============================================================
+var bvC=document.getElementById('bvCanvas'),bvCtx=bvC.getContext('2d');
+var bvDinoX=280,bvDinoY=350,bvDinoSpd=3.5;
+var bvDiamonds=[],bvNinjas=[],bvDiamondsGot=0;
+var bvActive=false;
+
+function enterBuilding(b){
+  if(currentLevel<3) return;
+  bvActive=true;
+  bvDinoX=280; bvDinoY=360;
+  bvDiamondsGot=0;
+  document.getElementById('bvD').textContent=0;
+  // Generate diamonds
+  bvDiamonds=[];
+  for(var i=0;i<6;i++){
+    bvDiamonds.push({x:60+Math.random()*440,y:60+Math.random()*300,got:false});
+  }
+  // Generate ninjas: black=easy, blue=medium, red=fast
+  bvNinjas=[];
+  var ninjaTypes=[
+    {col:'#1a1a1a',spd:1.0},{col:'#1a1a1a',spd:1.0},
+    {col:'#1e3a8a',spd:1.4},{col:'#1e3a8a',spd:1.4},
+    {col:'#c0392b',spd:1.8}
+  ];
+  var usedTypes=ninjaTypes.slice(0,Math.min(2+currentLevel-3,5));
+  usedTypes.forEach(function(nt,i){
+    bvNinjas.push({
+      x:50+Math.random()*460,y:50+Math.random()*300,
+      vx:(Math.random()>0.5?1:-1)*nt.spd,
+      vy:(Math.random()>0.5?1:-1)*nt.spd,
+      col:nt.col,r:14
+    });
+  });
+  document.getElementById('buildingView').classList.add('show');
+}
+
+document.getElementById('bvExit').onclick=function(){
+  document.getElementById('buildingView').classList.remove('show');
+  bvActive=false;
+};
+
+function updateBuilding(){
+  if(!bvActive) return;
+  var dx=0,dy=0;
+  if(K.left)  dx=-bvDinoSpd;
+  if(K.right) dx= bvDinoSpd;
+  if(K.up)    dy=-bvDinoSpd;
+  if(K.down)  dy= bvDinoSpd;
+  bvDinoX=Math.max(16,Math.min(544,bvDinoX+dx));
+  bvDinoY=Math.max(16,Math.min(404,bvDinoY+dy));
+
+  // Move ninjas - they bounce around and slowly chase
+  bvNinjas.forEach(function(n){
+    // slight homing
+    var hx=bvDinoX-n.x,hy=bvDinoY-n.y;
+    var dist=Math.sqrt(hx*hx+hy*hy)||1;
+    n.vx+=hx/dist*0.04; n.vy+=hy/dist*0.04;
+    // cap speed
+    var spd=Math.sqrt(n.vx*n.vx+n.vy*n.vy);
+    var maxSpd=n.col==='#c0392b'?1.8:n.col==='#1e3a8a'?1.4:1.0;
+    if(spd>maxSpd){n.vx=n.vx/spd*maxSpd;n.vy=n.vy/spd*maxSpd;}
+    n.x+=n.vx; n.y+=n.vy;
+    if(n.x<20||n.x>540) n.vx*=-1;
+    if(n.y<20||n.y>400) n.vy*=-1;
+    // collision with dino
+    if(Math.sqrt(distSq(bvDinoX,bvDinoY,n.x,n.y))<22){
+      score=Math.max(0,score-100);
+      document.getElementById('sN').textContent=score;
+      bvDinoX=280; bvDinoY=360;
+      showInfo('&#x274C; Ninja got you! -100 points',false);
+    }
+  });
+
+  // Collect diamonds
+  bvDiamonds.forEach(function(d){
+    if(!d.got&&Math.sqrt(distSq(bvDinoX,bvDinoY,d.x,d.y))<22){
+      d.got=true; bvDiamondsGot++;
+      addScore(50);
+      document.getElementById('bvD').textContent=bvDiamondsGot;
+    }
+  });
+}
+
+function drawBuildingInterior(){
+  if(!bvActive) return;
+  var bvW=560,bvH=420;
+  bvCtx.clearRect(0,0,bvW,bvH);
+
+  // floor - wooden
+  bvCtx.fillStyle='#5c3a1e';
+  bvCtx.fillRect(0,0,bvW,bvH);
+  // floor boards
+  bvCtx.strokeStyle='#4a2e14'; bvCtx.lineWidth=1;
+  for(var fy=0;fy<bvH;fy+=30){bvCtx.beginPath();bvCtx.moveTo(0,fy);bvCtx.lineTo(bvW,fy);bvCtx.stroke();}
+
+  // GREEN ambient light overlay
+  bvCtx.fillStyle='rgba(0,255,80,0.07)';
+  bvCtx.fillRect(0,0,bvW,bvH);
+
+  // Green wall lights
+  [[60,30],[200,30],[360,30],[500,30]].forEach(function(lp){
+    var grd=bvCtx.createRadialGradient(lp[0],lp[1],2,lp[0],lp[1],70);
+    grd.addColorStop(0,'rgba(0,255,80,0.45)');
+    grd.addColorStop(1,'rgba(0,255,80,0)');
+    bvCtx.fillStyle=grd;
+    bvCtx.fillRect(lp[0]-70,lp[1]-10,140,80);
+    bvCtx.fillStyle='#00ff50';
+    bvCtx.fillRect(lp[0]-8,lp[1]-6,16,10);
+  });
+
+  // BOULDERING WALL (right side)
+  bvCtx.fillStyle='#8B6914';
+  bvCtx.fillRect(380,60,160,300);
+  bvCtx.fillStyle='#7a5c10';
+  bvCtx.fillRect(380,60,160,8);
+  // holds on the bouldering wall
+  var holdCols=['#e74c3c','#3498db','#f1c40f','#2ecc71','#9b59b6','#e67e22'];
+  var holds=[
+    [400,90],[430,130],[460,100],[490,140],[510,90],[420,170],
+    [450,200],[480,165],[500,200],[415,240],[455,260],[490,230],
+    [420,300],[460,320],[500,280],[530,310]
+  ];
+  holds.forEach(function(h,hi){
+    bvCtx.fillStyle=holdCols[hi%holdCols.length];
+    bvCtx.beginPath();bvCtx.ellipse(h[0],h[1],9,6,Math.random()*0.5,0,Math.PI*2);bvCtx.fill();
+    bvCtx.strokeStyle='rgba(0,0,0,0.3)';bvCtx.lineWidth=1;bvCtx.stroke();
+  });
+  bvCtx.fillStyle='rgba(255,255,255,0.1)';
+  bvCtx.font='bold 11px Arial'; bvCtx.textAlign='center'; bvCtx.fillStyle='#fff';
+  bvCtx.fillText('BOULDERING WALL',460,355);
+
+  // Diamonds
+  bvDiamonds.forEach(function(d){
+    if(d.got) return;
+    var t=Date.now()/500;
+    var bob=Math.sin(t+d.x)*4;
+    var dx=d.x,dy=d.y+bob;
+    bvCtx.fillStyle='#00eeff';
+    bvCtx.beginPath();
+    bvCtx.moveTo(dx,dy-16);bvCtx.lineTo(dx+12,dy-4);bvCtx.lineTo(dx,dy+14);bvCtx.lineTo(dx-12,dy-4);bvCtx.closePath();
+    bvCtx.fill();
+    bvCtx.fillStyle='rgba(255,255,255,0.5)';
+    bvCtx.beginPath();bvCtx.moveTo(dx,dy-16);bvCtx.lineTo(dx+5,dy-6);bvCtx.lineTo(dx,dy-8);bvCtx.closePath();bvCtx.fill();
+    // sparkle
+    var a=0.5+0.5*Math.sin(t*3+d.y);
+    bvCtx.strokeStyle='rgba(0,238,255,'+a+')';bvCtx.lineWidth=1;
+    bvCtx.beginPath();bvCtx.moveTo(dx-18,dy);bvCtx.lineTo(dx+18,dy);bvCtx.stroke();
+    bvCtx.beginPath();bvCtx.moveTo(dx,dy-18);bvCtx.lineTo(dx,dy+18);bvCtx.stroke();
+  });
+
+  // Ninjas
+  bvNinjas.forEach(function(n){
+    var nx=n.x,ny=n.y;
+    // body
+    bvCtx.fillStyle=n.col;
+    bvCtx.fillRect(nx-10,ny-12,20,20);
+    // mask
+    bvCtx.fillStyle=n.col==='#1a1a1a'?'#333':n.col==='#1e3a8a'?'#2d5fe0':'#e74c3c';
+    bvCtx.fillRect(nx-10,ny-12,20,8);
+    // eyes (evil red glow)
+    bvCtx.fillStyle='#ff2200';
+    bvCtx.fillRect(nx-6,ny-10,3,3);bvCtx.fillRect(nx+3,ny-10,3,3);
+    // legs
+    bvCtx.fillStyle=n.col;
+    bvCtx.fillRect(nx-9,ny+8,8,10);bvCtx.fillRect(nx+1,ny+8,8,10);
+    // weapons (little sword)
+    bvCtx.strokeStyle='#ccc';bvCtx.lineWidth=2;
+    bvCtx.beginPath();bvCtx.moveTo(nx+10,ny-5);bvCtx.lineTo(nx+22,ny-14);bvCtx.stroke();
+  });
+
+  // Dino in building
+  drawBuildingDino(bvDinoX,bvDinoY,bvCtx);
+
+  // All diamonds collected message
+  if(bvDiamonds.every(function(d){return d.got;})){
+    bvCtx.fillStyle='rgba(0,0,0,0.5)';bvCtx.fillRect(100,160,360,70);
+    bvCtx.fillStyle='#4ade4a';bvCtx.font='bold 26px Arial';bvCtx.textAlign='center';
+    bvCtx.fillText('All diamonds found! Exit! \uD83D\uDC9A',280,202);
+  }
+}
+
+function drawBuildingDino(dx,dy,c2){
+  var hw=14,hh=14;
+  c2.fillStyle='rgba(0,0,0,0.2)';
+  c2.beginPath();c2.ellipse(dx,dy+hh+3,hw+3,5,0,0,Math.PI*2);c2.fill();
+  c2.fillStyle='#3a9e3a';c2.fillRect(dx-hw,dy-hh,hw*2,hh*2);
+  c2.fillStyle='#1a1a1a';c2.fillRect(dx-6,dy-4,4,4);c2.fillRect(dx+3,dy+3,4,4);
+  c2.fillStyle='#2a7a2a';
+  c2.fillRect(dx-hw-5,dy-4,6,8);c2.fillRect(dx+hw-1,dy-4,6,8);
+  c2.fillRect(dx-hw-4,dy+hh-5,6,8);c2.fillRect(dx+hw-2,dy+hh-5,6,8);
+  c2.fillStyle='#4ab84a';c2.fillRect(dx-9,dy-hh-12,18,14);
+  c2.fillStyle='#3a9e3a';c2.fillRect(dx-14,dy-hh-6,8,7);
+  c2.fillStyle='#fff';c2.fillRect(dx+2,dy-hh-10,6,6);
+  c2.fillStyle='#111';c2.fillRect(dx+3,dy-hh-9,4,4);
+}
+
+// ============================================================
+// UPDATE
+// ============================================================
 function update(){
-  if(inPit) return;
+  if(inPit||bvActive||levelUpPending) return;
+
   var dx=0,dy=0;
   if(K.left)  dx=-dino.spd;
   if(K.right) dx= dino.spd;
@@ -233,71 +822,172 @@ function update(){
   if(K.down)  dy= dino.spd;
   var nx=Math.max(0,Math.min(WORLD_W,dino.x+dx));
   var ny=Math.max(0,Math.min(WORLD_H,dino.y+dy));
-  var m=10;
-  function ok(px,py){return onRoad(px-m,py-m)&&onRoad(px+m,py-m)&&onRoad(px-m,py+m)&&onRoad(px+m,py+m);}
+  var m=6;
+  function ok(px,py){return canWalk(px-m,py-m)&&canWalk(px+m,py-m)&&canWalk(px-m,py+m)&&canWalk(px+m,py+m);}
   if(ok(nx,dino.y)) dino.x=nx;
   if(ok(dino.x,ny)) dino.y=ny;
-  cam.x=Math.max(0,Math.min(WORLD_W-W,dino.x-W/2));
-  cam.y=Math.max(0,Math.min(WORLD_H-H,dino.y-H/2));
-  // Record trail for baby dinos
+  cam.x=Math.max(0,Math.min(WORLD_W-CW,dino.x-CW/2));
+  cam.y=Math.max(0,Math.min(WORLD_H-CH,dino.y-CH/2));
+
+  // trail
   var last=trail[trail.length-1];
   if(!last||Math.abs(dino.x-last.x)+Math.abs(dino.y-last.y)>=6){
     trail.push({x:dino.x,y:dino.y});
     var maxLen=(babies.length+2)*BABY_GAP+60;
     if(trail.length>maxLen) trail.shift();
   }
+
+  // update fish & sharks
+  var t=Date.now()/1000;
+  LO.fish.forEach(function(f){
+    f.angle+=f.speed;
+    f.wx=f.px+Math.cos(f.angle)*f.rx;
+    f.wy=f.py+Math.sin(f.angle)*f.ry;
+  });
+  LO.sharks.forEach(function(s){
+    s.angle+=s.speed;
+    s.wx=s.px+Math.cos(s.angle)*s.rx;
+    s.wy=s.py+Math.sin(s.angle)*s.ry;
+  });
+
+  // update level hazards
+  LO.hazards.forEach(function(h){
+    if(h.type==='rock'||h.type==='asteroid'){
+      h.x+=h.vx; h.y+=h.vy;
+      if(h.x<0||h.x>WORLD_W) h.vx*=-1;
+      if(h.y>WORLD_H) h.y=0;
+      if(h.y<0) h.y=WORLD_H;
+    }
+    if(h.type==='frienddino'){
+      h.x+=h.vx;
+      if(h.x<20||h.x>WORLD_W-20) h.vx*=-1;
+    }
+    if(h.type==='lightning'){
+      h.timer++;
+      if(h.timer>h.interval){h.timer=0;h.x=Math.random()*WORLD_W;h.y=Math.random()*WORLD_H;}
+    }
+  });
+
+  // update crystal ages
+  LO.levelGems.forEach(function(g){
+    if(g.type==='crystal'&&!g.got){g.age++;if(g.age>g.lifetime)g.got=true;}
+  });
 }
 
+// ============================================================
+// COLLECT
+// ============================================================
+var sharkHitCooldown=0;
 function collect(){
-  eggTrees.forEach(function(t){
-    if(!t.got&&Math.abs(dino.x-t.x)<36&&Math.abs(dino.y-t.y)<36){
-      t.got=true;eggCount++;score+=10;
+  if(bvActive) return;
+  var t=Date.now();
+
+  // eggs - scan all trees with eggs
+  LO.trees.forEach(function(tr){
+    if(tr.egg&&!tr.got&&Math.sqrt(distSq(dino.x,dino.y,tr.x,tr.y))<44){
+      tr.got=true;eggCount++;addScore(10);
       document.getElementById('eN').textContent=eggCount;
-      document.getElementById('sN').textContent=score;
-      while(score>=lastBabyScore+100){lastBabyScore+=100;spawnBaby();}
     }
   });
-  cups.forEach(function(cu){
-    if(!cu.got&&Math.abs(dino.x-cu.x)<28&&Math.abs(dino.y-cu.y)<28){
-      cu.got=true;cupCount++;score+=25;
+  // cups
+  LO.cups.forEach(function(cu){
+    if(!cu.got&&Math.sqrt(distSq(dino.x,dino.y,cu.x,cu.y))<26){
+      cu.got=true;cupCount++;addScore(25);
       document.getElementById('cN').textContent=cupCount;
-      document.getElementById('sN').textContent=score;
-      while(score>=lastBabyScore+100){lastBabyScore+=100;spawnBaby();}
     }
   });
+  // fish
+  LO.fish.forEach(function(f){
+    if(!f.got&&f.wx&&Math.sqrt(distSq(dino.x,dino.y,f.wx,f.wy))<28){
+      f.got=true;addScore(30);showInfo('&#x1F41F; Fish! +30',true);
+    }
+  });
+  // sharks - lose 100, spawn outside pond
+  if(sharkHitCooldown>0) sharkHitCooldown--;
+  if(sharkHitCooldown===0){
+    LO.sharks.forEach(function(s){
+      if(s.wx&&Math.sqrt(distSq(dino.x,dino.y,s.wx,s.wy))<30){
+        score=Math.max(0,score-100);
+        document.getElementById('sN').textContent=score;
+        // eject dino to the street edge of the pond's park lot
+        var pl2=PARK_LOTS[0];
+        var pb2=lotBounds(pl2[0],pl2[1]);
+        dino.x=pb2.x1-TILE/2; dino.y=(pb2.y1+pb2.y2)/2;
+        if(!onRoad(dino.x,dino.y)){dino.x=streetX[2]+TILE/2;dino.y=streetY[2]+TILE/2;}
+        showInfo('&#x1F988; Shark! -100 points!',false);
+        sharkHitCooldown=120;
+      }
+    });
+  }
+
+  // level gems
+  LO.levelGems.forEach(function(g){
+    if(!g.got&&Math.sqrt(distSq(dino.x,dino.y,g.x,g.y))<28){
+      g.got=true;
+      var pts=g.type==='gem'?40:g.type==='crystal'?35:g.type==='moonrock'?45:g.type==='banana'?20:g.type==='speedstar'?30:25;
+      addScore(pts);
+      var icons={'gem':'&#x1F48E;','crystal':'&#x1F4A0;','moonrock':'&#x1F311;','banana':'&#x1F34C;','speedstar':'&#x2B50;','firefly':'&#x2728;','stall':'&#x1F3EA;'};
+      showInfo((icons[g.type]||'&#x2B50;')+' +'+pts,true);
+    }
+  });
+
+  // level hazards hitting dino
+  LO.hazards.forEach(function(h){
+    if((h.type==='rock'||h.type==='asteroid'||h.type==='lightning')&&sharkHitCooldown===0){
+      if(Math.sqrt(distSq(dino.x,dino.y,h.x,h.y))<h.r+14){
+        score=Math.max(0,score-100);
+        document.getElementById('sN').textContent=score;
+        dino.x=streetX[2]+TILE/2;dino.y=streetY[2]+TILE/2;
+        showInfo('&#x1F4A5; Hit! -100 points!',false);
+        sharkHitCooldown=120;
+      }
+    }
+  });
+
+  // pits
+  if(!inPit) LO.pits.forEach(function(pit){
+    if(!pit.active) return;
+    if(Math.sqrt(distSq(dino.x,dino.y,pit.x,pit.y))<pit.r-4) showMath(pit);
+  });
+
+  // building entry (level 3+)
+  if(currentLevel>=3&&!bvActive){
+    LO.enterableBuildings.forEach(function(b){
+      if(Math.sqrt(distSq(dino.x,dino.y,b.cx,b.cy))<50) enterBuilding(b);
+    });
+  }
+
+  // home base
+  if(nearHome()){
+    if(!inHome){inHome=true;showInfo('&#x1F3E0; Home sweet home! You can boulder here!',true);}
+  } else {inHome=false;}
 }
 
-// ---- DRAW ----
+// ============================================================
+// DRAW HELPERS
+// ============================================================
 function drawBabyDino(wx,wy,isAdult){
   var bx=wx-cam.x,by=wy-cam.y;
-  // adults are same size as big dino, babies are 55%
-  var s=isAdult?1.0:0.55;
+  var s=isAdult?1.0:0.52;
   var bw=dino.w*s,bh=dino.h*s,bhw=bw/2,bhh=bh/2;
-  // colour scheme: adults green like big dino, babies black with green eyes
-  var bodyCol  = isAdult?'#3a9e3a':'#1a1a1a';
-  var spotCol  = isAdult?'#1a1a1a':'#2e2e2e';
-  var legCol   = isAdult?'#2a7a2a':'#111';
-  var headCol  = isAdult?'#4ab84a':'#222';
-  var snoutCol = isAdult?'#3a9e3a':'#1a1a1a';
-  var nostrilC = isAdult?'#1a5a1a':'#000';
-  var spikeCol = isAdult?'#1a5a1a':'#333';
-  var tailCol  = isAdult?'#2a7a2a':'#111';
-  // shadow
-  ctx.fillStyle='rgba(0,0,0,0.15)';
+  var bodyCol=isAdult?'#3a9e3a':'#1a1a1a';
+  var spotCol=isAdult?'#1a1a1a':'#2e2e2e';
+  var legCol =isAdult?'#2a7a2a':'#111';
+  var headCol=isAdult?'#4ab84a':'#222';
+  var snoutC =isAdult?'#3a9e3a':'#1a1a1a';
+  var nostC  =isAdult?'#1a5a1a':'#000';
+  var spikeC =isAdult?'#1a5a1a':'#333';
+  var tailC  =isAdult?'#2a7a2a':'#111';
+  ctx.fillStyle='rgba(0,0,0,0.14)';
   ctx.beginPath();ctx.ellipse(bx,by+bhh+3,bhw+3,4,0,0,Math.PI*2);ctx.fill();
-  // body
   ctx.fillStyle=bodyCol;ctx.fillRect(bx-bhw,by-bhh,bw,bh);
   ctx.fillStyle=spotCol;ctx.fillRect(bx-bhw*0.5,by-bhh*0.3,bhw*0.35,bhh*0.35);ctx.fillRect(bx+bhw*0.1,by+bhh*0.2,bhw*0.3,bhh*0.3);
-  // legs
   ctx.fillStyle=legCol;
   ctx.fillRect(bx-bhw-3,by-bhh+1,5,bh*0.38);ctx.fillRect(bx+bhw-2,by-bhh+1,5,bh*0.38);
   ctx.fillRect(bx-bhw-3,by+bhh-bh*0.28,5,bh*0.38);ctx.fillRect(bx+bhw-2,by+bhh-bh*0.28,5,bh*0.38);
-  // head
   ctx.fillStyle=headCol;ctx.fillRect(bx-bw*0.45,by-bhh-bh*0.55,bw*0.9,bh*0.6);
-  // snout
-  ctx.fillStyle=snoutCol;ctx.fillRect(bx-bhw-bw*0.18,by-bhh-bh*0.22,bw*0.38,bh*0.32);
-  ctx.fillStyle=nostrilC;ctx.fillRect(bx-bhw-bw*0.15,by-bhh-bh*0.14,bw*0.1,bh*0.1);ctx.fillRect(bx-bhw+bw*0.02,by-bhh-bh*0.14,bw*0.1,bh*0.1);
-  // eyes: adults have white+black, babies have glowing green
+  ctx.fillStyle=snoutC;ctx.fillRect(bx-bhw-bw*0.18,by-bhh-bh*0.22,bw*0.38,bh*0.32);
+  ctx.fillStyle=nostC;ctx.fillRect(bx-bhw-bw*0.15,by-bhh-bh*0.14,bw*0.1,bh*0.1);ctx.fillRect(bx-bhw+bw*0.02,by-bhh-bh*0.14,bw*0.1,bh*0.1);
   if(isAdult){
     ctx.fillStyle='#fff';ctx.fillRect(bx+bw*0.1,by-bhh-bh*0.5,bw*0.25,bh*0.35);
     ctx.fillStyle='#111';ctx.fillRect(bx+bw*0.14,by-bhh-bh*0.46,bw*0.18,bh*0.28);
@@ -307,12 +997,10 @@ function drawBabyDino(wx,wy,isAdult){
     ctx.fillStyle='#004400';ctx.fillRect(bx+bw*0.14,by-bhh-bh*0.46,bw*0.18,bh*0.28);
     ctx.fillStyle='#88ffaa';ctx.fillRect(bx+bw*0.27,by-bhh-bh*0.46,bw*0.07,bh*0.12);
   }
-  // spikes
-  ctx.fillStyle=spikeCol;
+  ctx.fillStyle=spikeC;
   ctx.beginPath();ctx.moveTo(bx+bhw,by-bhh*0.55);ctx.lineTo(bx+bhw+bw*0.32,by-bhh*0.8);ctx.lineTo(bx+bhw,by-bhh*0.1);ctx.fill();
   ctx.beginPath();ctx.moveTo(bx+bhw,by+bhh*0.05);ctx.lineTo(bx+bhw+bw*0.32,by-bhh*0.2);ctx.lineTo(bx+bhw,by+bhh*0.45);ctx.fill();
-  // tail
-  ctx.fillStyle=tailCol;
+  ctx.fillStyle=tailC;
   ctx.fillRect(bx-bw*0.18,by+bhh,bw*0.42,bh*0.28);
   ctx.fillRect(bx-bw*0.14,by+bhh+bh*0.26,bw*0.32,bh*0.22);
   ctx.fillRect(bx-bw*0.1, by+bhh+bh*0.45,bw*0.24,bh*0.18);
@@ -342,42 +1030,282 @@ function drawBigDino(){
   ctx.fillRect(dx-5,dy+hh,10,8);ctx.fillRect(dx-4,dy+hh+7,8,6);ctx.fillRect(dx-3,dy+hh+12,6,5);
 }
 
+// ============================================================
+// DRAW HOME BASE
+// ============================================================
+function drawHome(){
+  var hb2=lotBounds(HOME_LOT[0],HOME_LOT[1]);
+  var lx=hb2.x1-cam.x,ly=hb2.y1-cam.y;
+  var lw=hb2.x2-hb2.x1,lh=hb2.y2-hb2.y1;
+  var hx=HOME_X-cam.x,hy=HOME_Y-cam.y;
+  if(lx+lw<0||lx>CW||ly+lh<0||ly>CH) return;
+
+  // garden / lawn
+  ctx.fillStyle='#2d5e2d';ctx.fillRect(lx,ly,lw,lh);
+  // garden path from south street to house
+  ctx.fillStyle='#b8a060';ctx.fillRect(hx-10,hy+20,20,ly+lh-hy-20);
+  // grass detail
+  ctx.fillStyle='#256325';
+  for(var gx2=lx+10;gx2<lx+lw-10;gx2+=22) for(var gy2=ly+10;gy2<ly+lh-10;gy2+=22)
+    ctx.fillRect(gx2,gy2,10,4);
+
+  // --- BOULDERING WALL (left side of lot) ---
+  var wlx=lx+10,wly=ly+10,wlw=40,wlh=lh-20;
+  ctx.fillStyle='#7a5c1e';ctx.fillRect(wlx,wly,wlw,wlh);
+  ctx.strokeStyle='#5a3c0e';ctx.lineWidth=2;ctx.strokeRect(wlx,wly,wlw,wlh);
+  var holdCols=['#e74c3c','#3498db','#f1c40f','#2ecc71','#9b59b6','#e67e22'];
+  var holds2=[[wlx+8,wly+18],[wlx+24,wly+34],[wlx+12,wly+52],[wlx+28,wly+68],
+              [wlx+8,wly+86],[wlx+22,wly+104],[wlx+14,wly+122],[wlx+26,wly+140],
+              [wlx+10,wly+158],[wlx+28,wly+174]];
+  holds2.forEach(function(h,hi){
+    ctx.fillStyle=holdCols[hi%holdCols.length];
+    ctx.beginPath();ctx.ellipse(h[0],h[1],7,5,0.3,0,Math.PI*2);ctx.fill();
+    ctx.strokeStyle='rgba(0,0,0,0.25)';ctx.lineWidth=1;ctx.stroke();
+  });
+  ctx.fillStyle='#fff';ctx.font='bold 9px Arial';ctx.textAlign='center';
+  ctx.fillText('BOULDER',wlx+wlw/2,wly+wlh+10);
+
+  // --- HOUSE (right/centre of lot) ---
+  var hw2=52,hh2=48;
+  // green ambient glow
+  var t=Date.now()/800,ga=0.14+0.07*Math.sin(t);
+  var grd=ctx.createRadialGradient(hx,hy,8,hx,hy,70);
+  grd.addColorStop(0,'rgba(0,255,80,'+ga+')');
+  grd.addColorStop(1,'rgba(0,255,80,0)');
+  ctx.fillStyle=grd;ctx.fillRect(hx-72,hy-72,144,144);
+  // walls
+  ctx.fillStyle='#2d4a2d';ctx.fillRect(hx-hw2,hy-hh2+16,hw2*2,hh2);
+  // roof
+  ctx.fillStyle='#1a6e1a';
+  ctx.beginPath();ctx.moveTo(hx-hw2-8,hy-hh2+18);ctx.lineTo(hx,hy-hh2-26);ctx.lineTo(hx+hw2+8,hy-hh2+18);ctx.closePath();ctx.fill();
+  // chimney
+  ctx.fillStyle='#4a3a3a';ctx.fillRect(hx+20,hy-hh2-10,12,18);
+  // door (open when dino is near)
+  var nearDoor=Math.sqrt((dino.x-HOME_X)*(dino.x-HOME_X)+(dino.y-HOME_Y)*(dino.y-HOME_Y))<80;
+  ctx.fillStyle=nearDoor?'#4a2800':'#8B4513';ctx.fillRect(hx-12,hy+2,24,hh2-2);
+  ctx.fillStyle='#c8a000';ctx.fillRect(hx+6,hy+hh2/2,4,4);
+  // green-lit windows
+  [[hx-34,hy-14],[hx+18,hy-14]].forEach(function(wp){
+    ctx.fillStyle='rgba(0,255,80,0.75)';ctx.fillRect(wp[0],wp[1],18,16);
+    ctx.strokeStyle='#aaffaa';ctx.lineWidth=1.5;ctx.strokeRect(wp[0],wp[1],18,16);
+    ctx.beginPath();ctx.moveTo(wp[0]+9,wp[1]);ctx.lineTo(wp[0]+9,wp[1]+16);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(wp[0],wp[1]+8);ctx.lineTo(wp[0]+18,wp[1]+8);ctx.stroke();
+  });
+  // label
+  ctx.fillStyle='#4ade4a';ctx.font='bold 11px Arial';ctx.textAlign='center';
+  ctx.fillText("William's Home",hx,ly+8);
+  if(nearDoor){
+    ctx.fillStyle='#ffe97a';ctx.font='10px Arial';
+    ctx.fillText('Welcome home!',hx,ly+20);
+  }
+
+  // inside home: if dino is IN the lot, draw interior overlay
+  if(inHomeLot(dino.x,dino.y)){
+    // green interior light
+    ctx.fillStyle='rgba(0,200,60,0.08)';ctx.fillRect(lx,ly,lw,lh);
+  }
+}
+
+// ============================================================
+// DRAW
+// ============================================================
+function drawParks(){
+  PARK_LOTS.forEach(function(pl,pi){
+    var pb=lotBounds(pl[0],pl[1]);
+    var lx=pb.x1-cam.x,ly=pb.y1-cam.y;
+    var lw=pb.x2-pb.x1,lh=pb.y2-pb.y1;
+    if(lx+lw<0||lx>CW||ly+lh<0||ly>CH) return;
+    var role=(LO.parkLotRoles&&LO.parkLotRoles[pi])||'garden';
+
+    // base ground colour per role
+    var grassCol={'garden':'#2e6e2e','pond':'#2e6e2e','ruins':'#4a4a3a','firefly':'#1a2e1a',
+                  'market':'#6e5a2e','volcano':'#3a1a0a','jungle':'#1a4e1a','storm':'#2a2a4e',
+                  'moonbase':'#1a1a3a','epic':'#2e1a4e'}[role]||'#2e6e2e';
+    ctx.fillStyle=grassCol;ctx.fillRect(lx,ly,lw,lh);
+
+    // ground texture
+    ctx.fillStyle='rgba(0,0,0,0.12)';
+    for(var gx2=lx+8;gx2<lx+lw-8;gx2+=20) for(var gy2=ly+8;gy2<ly+lh-8;gy2+=20)
+      ctx.fillRect(gx2,gy2,9,3);
+
+    // role-specific decorations
+    if(role==='ruins'){
+      // crumbled stone blocks
+      ctx.fillStyle='#6a5a4a';
+      [[lx+15,ly+15,22,18],[lx+lw-40,ly+20,20,16],[lx+20,ly+lh-40,24,14],[lx+lw-36,ly+lh-36,18,18]].forEach(function(r2){
+        ctx.fillRect(r2[0],r2[1],r2[2],r2[3]);
+        ctx.strokeStyle='#4a3a2a';ctx.lineWidth=1;ctx.strokeRect(r2[0],r2[1],r2[2],r2[3]);
+      });
+      ctx.fillStyle='#5a4a3a';ctx.font='10px Arial';ctx.textAlign='center';ctx.fillText('RUINS',lx+lw/2,ly+10);
+    }
+    if(role==='firefly'){
+      // dark sparkle overlay
+      ctx.fillStyle='rgba(0,60,20,0.4)';ctx.fillRect(lx,ly,lw,lh);
+      var t3=Date.now()/300;
+      for(var fi2=0;fi2<6;fi2++){
+        var fa=0.3+0.7*Math.abs(Math.sin(t3+fi2*1.1));
+        ctx.fillStyle='rgba(255,255,100,'+fa+')';
+        ctx.beginPath();ctx.arc(lx+20+fi2*((lw-40)/5),ly+lh/2+Math.sin(t3+fi2)*20,3,0,Math.PI*2);ctx.fill();
+      }
+    }
+    if(role==='market'){
+      // stall canopies
+      var stallCols2=['#e74c3c','#3498db','#f1c40f'];
+      [[lx+lw*0.2,ly+lh*0.3],[lx+lw*0.6,ly+lh*0.3],[lx+lw*0.4,ly+lh*0.65]].forEach(function(sp3,si3){
+        ctx.fillStyle=stallCols2[si3%3];
+        ctx.fillRect(sp3[0]-18,sp3[1]-10,36,6);
+        ctx.fillStyle='rgba(0,0,0,0.2)';ctx.fillRect(sp3[0]-18,sp3[1]-4,36,20);
+        ctx.strokeStyle='#fff';ctx.lineWidth=1;ctx.strokeRect(sp3[0]-18,sp3[1]-10,36,6);
+      });
+      ctx.fillStyle='#c8a000';ctx.font='10px Arial';ctx.textAlign='center';ctx.fillText('MARKET',lx+lw/2,ly+10);
+    }
+    if(role==='volcano'){
+      // lava cracks
+      ctx.strokeStyle='#ff4400';ctx.lineWidth=2;
+      [[lx+10,ly+20,lx+30,ly+50],[lx+lw-20,ly+30,lx+lw-40,ly+60],[lx+lw/2,ly+lh-20,lx+lw/2+20,ly+lh-60]].forEach(function(ln){
+        ctx.beginPath();ctx.moveTo(ln[0],ln[1]);ctx.lineTo(ln[2],ln[3]);ctx.stroke();
+      });
+      var va=0.3+0.3*Math.sin(Date.now()/300);
+      ctx.fillStyle='rgba(255,80,0,'+va+')';ctx.fillRect(lx,ly,lw,lh);
+      ctx.fillStyle='#ff4400';ctx.font='bold 10px Arial';ctx.textAlign='center';ctx.fillText('VOLCANO ZONE',lx+lw/2,ly+10);
+    }
+    if(role==='jungle'){
+      // denser green, vines
+      ctx.strokeStyle='#1a6e1a';ctx.lineWidth=2;
+      for(var vi3=0;vi3<4;vi3++){
+        ctx.beginPath();ctx.moveTo(lx+vi3*(lw/3),ly);ctx.bezierCurveTo(lx+vi3*(lw/3)+20,ly+lh/3,lx+vi3*(lw/3)-10,ly+lh*0.66,lx+vi3*(lw/3)+5,ly+lh);ctx.stroke();
+      }
+      ctx.fillStyle='#27ae60';ctx.font='bold 10px Arial';ctx.textAlign='center';ctx.fillText('JUNGLE',lx+lw/2,ly+10);
+    }
+    if(role==='storm'){
+      var sa=0.15+0.1*Math.sin(Date.now()/200);
+      ctx.fillStyle='rgba(100,100,200,'+sa+')';ctx.fillRect(lx,ly,lw,lh);
+      ctx.fillStyle='#8888ff';ctx.font='bold 10px Arial';ctx.textAlign='center';ctx.fillText('STORM',lx+lw/2,ly+10);
+    }
+    if(role==='moonbase'){
+      ctx.fillStyle='rgba(200,200,255,0.1)';ctx.fillRect(lx,ly,lw,lh);
+      // rocket
+      ctx.fillStyle='#aaa';ctx.fillRect(lx+lw/2-8,ly+lh*0.2,16,40);
+      ctx.fillStyle='#e74c3c';
+      ctx.beginPath();ctx.moveTo(lx+lw/2-8,ly+lh*0.2);ctx.lineTo(lx+lw/2,ly+lh*0.1-10);ctx.lineTo(lx+lw/2+8,ly+lh*0.2);ctx.closePath();ctx.fill();
+      ctx.fillStyle='#3498db';ctx.fillRect(lx+lw/2-4,ly+lh*0.25,8,12);
+      ctx.fillStyle='#aaa';ctx.font='bold 9px Arial';ctx.textAlign='center';ctx.fillText('MOON BASE',lx+lw/2,ly+10);
+    }
+    if(role==='epic'){
+      var ea=0.12+0.08*Math.sin(Date.now()/150);
+      ctx.fillStyle='rgba(150,0,255,'+ea+')';ctx.fillRect(lx,ly,lw,lh);
+      ctx.fillStyle='#cc66ff';ctx.font='bold 10px Arial';ctx.textAlign='center';ctx.fillText('EPIC ZONE',lx+lw/2,ly+10);
+    }
+
+    // park benches (on non-lava/volcano/moonbase lots)
+    if(role!=='volcano'&&role!=='moonbase'){
+      [[lx+18,ly+18],[lx+lw-38,ly+18],[lx+18,ly+lh-30]].forEach(function(bp){
+        ctx.fillStyle='#8B6914';ctx.fillRect(bp[0],bp[1],26,7);
+        ctx.fillStyle='#5a3c0e';ctx.fillRect(bp[0]+2,bp[1]+7,5,9);ctx.fillRect(bp[0]+19,bp[1]+7,5,9);
+      });
+    }
+
+    // flowers on garden/park lots
+    if(role==='garden'||role==='pond'||role==='jungle'){
+      var flowerCols=['#ff6b6b','#ffff6b','#ff9fff','#6bffff'];
+      for(var fx=lx+6;fx<lx+lw-6;fx+=18){
+        ctx.fillStyle=flowerCols[Math.floor(fx/18)%4];
+        ctx.beginPath();ctx.arc(fx,ly+6,4,0,Math.PI*2);ctx.fill();
+        ctx.beginPath();ctx.arc(fx,ly+lh-6,4,0,Math.PI*2);ctx.fill();
+      }
+      for(var fy=ly+6;fy<ly+lh-6;fy+=18){
+        ctx.fillStyle=flowerCols[Math.floor(fy/18)%4];
+        ctx.beginPath();ctx.arc(lx+6,fy,4,0,Math.PI*2);ctx.fill();
+        ctx.beginPath();ctx.arc(lx+lw-6,fy,4,0,Math.PI*2);ctx.fill();
+      }
+    }
+
+    // pond drawing (for any lot that has a pond)
+    var pond=LO.ponds[pi];
+    if(pond){
+      var px=pond.x-cam.x,py=pond.y-cam.y;
+      var isLava=pond.lava;
+      ctx.fillStyle=isLava?'#cc2200':'#1a6eb5';
+      ctx.beginPath();ctx.ellipse(px,py,pond.rx,pond.ry,0,0,Math.PI*2);ctx.fill();
+      if(!isLava){
+        ctx.fillStyle='rgba(120,200,255,0.28)';
+        ctx.beginPath();ctx.ellipse(px-pond.rx*0.25,py-pond.ry*0.2,pond.rx*0.45,pond.ry*0.35,0,0,Math.PI*2);ctx.fill();
+      } else {
+        var la2=0.4+0.3*Math.sin(Date.now()/200);
+        ctx.fillStyle='rgba(255,120,0,'+la2+')';
+        ctx.beginPath();ctx.ellipse(px,py,pond.rx*0.7,pond.ry*0.7,0,0,Math.PI*2);ctx.fill();
+      }
+      ctx.strokeStyle=isLava?'#ff4400':'#2980b9';ctx.lineWidth=3;
+      ctx.beginPath();ctx.ellipse(px,py,pond.rx,pond.ry,0,0,Math.PI*2);ctx.stroke();
+      if(!isLava){
+        ctx.strokeStyle='rgba(100,200,255,0.2)';ctx.lineWidth=1.5;ctx.setLineDash([4,7]);
+        ctx.beginPath();ctx.ellipse(px,py,pond.rx*0.7,pond.ry*0.7,0,0,Math.PI*2);ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.fillStyle='#b8a060';
+        for(var pa=0;pa<Math.PI*2;pa+=0.28){
+          ctx.beginPath();ctx.arc(px+Math.cos(pa)*(pond.rx+6),py+Math.sin(pa)*(pond.ry+5),3,0,Math.PI*2);ctx.fill();
+        }
+      }
+    }
+  });
+}
+
 function draw(){
-  ctx.clearRect(0,0,W,H);
-  // Grass
-  ctx.fillStyle='#3d7a36';ctx.fillRect(0,0,W,H);
-  // Roads
-  ctx.fillStyle='#666';
-  streetY.forEach(function(sy){ctx.fillRect(0,sy-cam.y,W,TILE);});
-  streetX.forEach(function(sx){ctx.fillRect(sx-cam.x,0,TILE,H);});
-  // Road markings
+  ctx.clearRect(0,0,CW,CH);
+  var isNight=currentLevel===4||currentLevel===10;
+
+  // sky / background
+  if(isNight){ctx.fillStyle='#0a0a1a';}
+  else {ctx.fillStyle='#3d7a36';}
+  ctx.fillRect(0,0,CW,CH);
+
+  // roads
+  ctx.fillStyle=isNight?'#333':'#666';
+  streetY.forEach(function(sy){ctx.fillRect(0,sy-cam.y,CW,TILE);});
+  streetX.forEach(function(sx){ctx.fillRect(sx-cam.x,0,TILE,CH);});
   ctx.strokeStyle='#f5c518';ctx.lineWidth=2;ctx.setLineDash([18,12]);
-  streetY.forEach(function(sy){ctx.beginPath();ctx.moveTo(0,sy-cam.y+TILE/2);ctx.lineTo(W,sy-cam.y+TILE/2);ctx.stroke();});
-  streetX.forEach(function(sx){ctx.beginPath();ctx.moveTo(sx-cam.x+TILE/2,0);ctx.lineTo(sx-cam.x+TILE/2,H);ctx.stroke();});
+  streetY.forEach(function(sy){ctx.beginPath();ctx.moveTo(0,sy-cam.y+TILE/2);ctx.lineTo(CW,sy-cam.y+TILE/2);ctx.stroke();});
+  streetX.forEach(function(sx){ctx.beginPath();ctx.moveTo(sx-cam.x+TILE/2,0);ctx.lineTo(sx-cam.x+TILE/2,CH);ctx.stroke();});
   ctx.setLineDash([]);
-  // Kerbs
   ctx.fillStyle='#888';
-  streetY.forEach(function(sy){ctx.fillRect(0,sy-cam.y,W,3);ctx.fillRect(0,sy-cam.y+TILE-3,W,3);});
-  streetX.forEach(function(sx){ctx.fillRect(sx-cam.x,0,3,H);ctx.fillRect(sx-cam.x+TILE-3,0,3,H);});
-  // Buildings
-  buildings.forEach(function(b){
+  streetY.forEach(function(sy){ctx.fillRect(0,sy-cam.y,CW,3);ctx.fillRect(0,sy-cam.y+TILE-3,CW,3);});
+  streetX.forEach(function(sx){ctx.fillRect(sx-cam.x,0,3,CH);ctx.fillRect(sx-cam.x+TILE-3,0,3,CH);});
+
+  // parks and home lots (drawn after roads so they sit on top of grass)
+  drawParks();
+  drawHome();
+
+  // buildings
+  buildings.forEach(function(b,bi){
     var sx=b.x-cam.x,sy=b.y-cam.y;
-    if(sx+b.w<0||sx>W||sy+b.h<0||sy>H) return;
-    ctx.fillStyle=b.col;ctx.fillRect(sx,sy,b.w,b.h);
+    if(sx+b.w<0||sx>CW||sy+b.h<0||sy>CH) return;
+    ctx.fillStyle=isNight?'#1a1a2e':b.col;ctx.fillRect(sx,sy,b.w,b.h);
     ctx.fillStyle='rgba(0,0,0,0.25)';ctx.fillRect(sx,sy,b.w,8);ctx.fillRect(sx,sy,8,b.h);
-    ctx.fillStyle='rgba(255,240,80,0.6)';
+    // windows
+    var winCol=isNight?'rgba(255,240,80,0.8)':'rgba(255,240,80,0.55)';
+    ctx.fillStyle=winCol;
     for(var wy=12;wy<b.h-12;wy+=18) for(var wx=12;wx<b.w-12;wx+=16)
       if((wx*wy)%7!==0) ctx.fillRect(sx+wx,sy+wy,9,8);
+    // enterable door (level 3+)
+    if(currentLevel>=3&&b.enterable){
+      ctx.fillStyle='#8B4513';ctx.fillRect(sx+b.w/2-8,sy+b.h-22,16,22);
+      ctx.fillStyle='#f5c518';ctx.fillRect(sx+b.w/2+2,sy+b.h-14,4,4);
+      // glow
+      var ta=0.3+0.3*Math.sin(Date.now()/400);
+      ctx.strokeStyle='rgba(245,197,24,'+ta+')';ctx.lineWidth=3;
+      ctx.strokeRect(sx+b.w/2-10,sy+b.h-24,20,24);
+    }
   });
-  // Trees
-  trees.forEach(function(t){
-    var tx=t.x-cam.x,ty=t.y-cam.y;
-    if(tx<-30||tx>W+30||ty<-30||ty>H+30) return;
+
+  // trees
+  LO.trees.forEach(function(tr){
+    var tx=tr.x-cam.x,ty=tr.y-cam.y;
+    if(tx<-30||tx>CW+30||ty<-30||ty>CH+30) return;
     ctx.fillStyle='#6b3a1f';ctx.fillRect(tx-5,ty-5,10,10);
     ctx.fillStyle='#1f7a1f';ctx.beginPath();ctx.arc(tx,ty,17,0,Math.PI*2);ctx.fill();
     ctx.fillStyle='#28a028';ctx.beginPath();ctx.arc(tx-4,ty-5,10,0,Math.PI*2);ctx.fill();
     ctx.fillStyle='#33c033';ctx.beginPath();ctx.arc(tx+3,ty-3,7,0,Math.PI*2);ctx.fill();
-    if(t.egg&&!t.got){
+    if(tr.egg&&!tr.got){
       ctx.strokeStyle='#a0522d';ctx.lineWidth=1.5;
       ctx.beginPath();ctx.moveTo(tx+4,ty-16);ctx.lineTo(tx+18,ty-26);ctx.stroke();
       ctx.fillStyle='#d4a056';ctx.fillRect(tx+10,ty-36,18,13);
@@ -386,60 +1314,215 @@ function draw(){
       ctx.strokeStyle='#ccc';ctx.lineWidth=0.8;ctx.stroke();
     }
   });
-  // Cups
-  cups.forEach(function(cu){
+
+  // cups
+  LO.cups.forEach(function(cu){
     if(cu.got) return;
     var cx=cu.x-cam.x,cy=cu.y-cam.y;
-    if(cx<-20||cx>W+20||cy<-20||cy>H+20) return;
+    if(cx<-20||cx>CW+20||cy<-20||cy>CH+20) return;
     ctx.fillStyle='#FFD700';
-    ctx.beginPath();
-    ctx.moveTo(cx-11,cy-13);ctx.lineTo(cx+11,cy-13);ctx.lineTo(cx+8,cy+2);ctx.lineTo(cx+12,cy+2);
+    ctx.beginPath();ctx.moveTo(cx-11,cy-13);ctx.lineTo(cx+11,cy-13);ctx.lineTo(cx+8,cy+2);ctx.lineTo(cx+12,cy+2);
     ctx.lineTo(cx+12,cy+7);ctx.lineTo(cx-12,cy+7);ctx.lineTo(cx-12,cy+2);ctx.lineTo(cx-8,cy+2);
-    ctx.closePath();ctx.fill();
-    ctx.strokeStyle='#c8960a';ctx.lineWidth=1.5;ctx.stroke();
+    ctx.closePath();ctx.fill();ctx.strokeStyle='#c8960a';ctx.lineWidth=1.5;ctx.stroke();
     ctx.fillRect(cx-12,cy+6,24,4);
-    ctx.fillStyle='rgba(255,255,255,0.35)';ctx.beginPath();ctx.ellipse(cx-3,cy-5,2.5,5,0.3,0,Math.PI*2);ctx.fill();
   });
-  // Pits
-  pits.forEach(function(pit){
+
+  // PONDS (level 2+)
+  LO.ponds.forEach(function(pond){
+    var px=pond.x-cam.x,py=pond.y-cam.y;
+    if(px<-80||px>CW+80||py<-80||py>CH+80) return;
+    // water
+    var t=Date.now()/1200;
+    ctx.fillStyle='#1a6eb5';ctx.beginPath();ctx.ellipse(px,py,pond.rx,pond.ry,0,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='rgba(100,180,255,0.35)';ctx.beginPath();ctx.ellipse(px-8,py-6,pond.rx*0.5,pond.ry*0.4,0,0,Math.PI*2);ctx.fill();
+    ctx.strokeStyle='#2980b9';ctx.lineWidth=3;ctx.beginPath();ctx.ellipse(px,py,pond.rx,pond.ry,0,0,Math.PI*2);ctx.stroke();
+    // ripples
+    var ripA=0.15+0.1*Math.sin(t);
+    ctx.strokeStyle='rgba(100,200,255,'+ripA+')';ctx.lineWidth=1.5;ctx.setLineDash([4,6]);
+    ctx.beginPath();ctx.ellipse(px,py,pond.rx-8,pond.ry-6,0,0,Math.PI*2);ctx.stroke();
+    ctx.setLineDash([]);
+  });
+
+  // FISH
+  LO.fish.forEach(function(f){
+    if(f.got||!f.wx) return;
+    var fx=f.wx-cam.x,fy=f.wy-cam.y;
+    if(fx<-20||fx>CW+20||fy<-20||fy>CH+20) return;
+    ctx.fillStyle='#ff9900';
+    ctx.beginPath();ctx.ellipse(fx,fy,9,5,f.angle,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#ffcc00';ctx.beginPath();ctx.ellipse(fx-2,fy,5,3,f.angle,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#000';ctx.beginPath();ctx.arc(fx+5*Math.cos(f.angle),fy+5*Math.sin(f.angle),1.5,0,Math.PI*2);ctx.fill();
+    // tail
+    ctx.fillStyle='#ff9900';
+    ctx.beginPath();
+    ctx.moveTo(fx-9*Math.cos(f.angle),fy-9*Math.sin(f.angle));
+    ctx.lineTo(fx-14*Math.cos(f.angle)-5*Math.sin(f.angle),fy-14*Math.sin(f.angle)+5*Math.cos(f.angle));
+    ctx.lineTo(fx-14*Math.cos(f.angle)+5*Math.sin(f.angle),fy-14*Math.sin(f.angle)-5*Math.cos(f.angle));
+    ctx.closePath();ctx.fill();
+  });
+
+  // SHARKS
+  LO.sharks.forEach(function(s){
+    if(!s.wx) return;
+    var sx2=s.wx-cam.x,sy2=s.wy-cam.y;
+    if(sx2<-30||sx2>CW+30||sy2<-30||sy2>CH+30) return;
+    // body
+    ctx.fillStyle='#607d8b';ctx.beginPath();ctx.ellipse(sx2,sy2,18,9,s.angle,0,Math.PI*2);ctx.fill();
+    // fin
+    ctx.fillStyle='#607d8b';ctx.beginPath();
+    ctx.moveTo(sx2,sy2-9);ctx.lineTo(sx2-5*Math.cos(s.angle)-8*Math.sin(s.angle),sy2-5*Math.sin(s.angle)+8*Math.cos(s.angle));
+    ctx.lineTo(sx2+5*Math.cos(s.angle),sy2+5*Math.sin(s.angle));ctx.closePath();ctx.fill();
+    // eye
+    ctx.fillStyle='#000';ctx.beginPath();ctx.arc(sx2+12*Math.cos(s.angle),sy2+12*Math.sin(s.angle),2.5,0,Math.PI*2);ctx.fill();
+    // teeth
+    ctx.fillStyle='#fff';
+    ctx.beginPath();ctx.moveTo(sx2+16*Math.cos(s.angle),sy2+16*Math.sin(s.angle));
+    ctx.lineTo(sx2+20*Math.cos(s.angle)-3*Math.sin(s.angle),sy2+20*Math.sin(s.angle)+3*Math.cos(s.angle));
+    ctx.lineTo(sx2+18*Math.cos(s.angle),sy2+18*Math.sin(s.angle));
+    ctx.lineTo(sx2+22*Math.cos(s.angle)+3*Math.sin(s.angle),sy2+22*Math.sin(s.angle)-3*Math.cos(s.angle));
+    ctx.closePath();ctx.fill();
+    // warning pulse
+    var ta=0.3+0.3*Math.sin(Date.now()/300);
+    ctx.strokeStyle='rgba(255,50,50,'+ta+')';ctx.lineWidth=2;
+    ctx.beginPath();ctx.ellipse(sx2,sy2,22,14,s.angle,0,Math.PI*2);ctx.stroke();
+  });
+
+  // level gems
+  LO.levelGems.forEach(function(g){
+    if(g.got) return;
+    var gx=g.x-cam.x,gy=g.y-cam.y;
+    if(gx<-20||gx>CW+20||gy<-20||gy>CH+20) return;
+    var t=Date.now()/500;
+    var bob=Math.sin(t+g.x*0.01)*4;
+    if(g.type==='gem'){
+      ctx.fillStyle='#e74c3c';
+      ctx.beginPath();ctx.moveTo(gx,gy-14+bob);ctx.lineTo(gx+11,gy-3+bob);ctx.lineTo(gx,gy+12+bob);ctx.lineTo(gx-11,gy-3+bob);ctx.closePath();ctx.fill();
+      ctx.fillStyle='rgba(255,255,255,0.4)';ctx.beginPath();ctx.moveTo(gx,gy-14+bob);ctx.lineTo(gx+5,gy-5+bob);ctx.lineTo(gx,gy-7+bob);ctx.closePath();ctx.fill();
+    } else if(g.type==='crystal'){
+      var alpha=Math.max(0,1-g.age/g.lifetime);
+      ctx.globalAlpha=alpha;
+      ctx.fillStyle=g.col||'#3498db';
+      ctx.beginPath();ctx.moveTo(gx,gy-13+bob);ctx.lineTo(gx+9,gy+bob);ctx.lineTo(gx,gy+11+bob);ctx.lineTo(gx-9,gy+bob);ctx.closePath();ctx.fill();
+      ctx.globalAlpha=1;
+    } else if(g.type==='moonrock'){
+      ctx.fillStyle='#aaa';ctx.beginPath();ctx.arc(gx,gy+bob,10,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle='#888';ctx.beginPath();ctx.arc(gx-3,gy-2+bob,3,0,Math.PI*2);ctx.fill();
+      ctx.beginPath();ctx.arc(gx+4,gy+3+bob,2,0,Math.PI*2);ctx.fill();
+    } else if(g.type==='banana'){
+      ctx.fillStyle='#f1c40f';ctx.beginPath();ctx.arc(gx,gy+bob,8,0,Math.PI);ctx.fill();
+      ctx.strokeStyle='#e67e22';ctx.lineWidth=2;ctx.beginPath();ctx.arc(gx,gy+bob,8,0,Math.PI);ctx.stroke();
+    } else if(g.type==='speedstar'||g.type==='firefly'){
+      var sc=g.type==='firefly'?'#ffff00':'#fff';
+      ctx.fillStyle=sc;
+      var r=g.type==='firefly'?5:7;
+      for(var si=0;si<5;si++){
+        var ang=si*Math.PI*2/5-Math.PI/2;
+        ctx.beginPath();ctx.moveTo(gx+Math.cos(ang)*r,gy+Math.sin(ang)*r+bob);
+        ctx.lineTo(gx+Math.cos(ang+0.3)*r*0.4,gy+Math.sin(ang+0.3)*r*0.4+bob);
+        ctx.lineTo(gx+Math.cos(ang+Math.PI*2/5)*r,gy+Math.sin(ang+Math.PI*2/5)*r+bob);
+        ctx.closePath();ctx.fill();
+      }
+      if(g.type==='firefly'){var ga=0.5+0.5*Math.sin(Date.now()/200+g.x);ctx.strokeStyle='rgba(255,255,0,'+ga+')';ctx.lineWidth=6;ctx.beginPath();ctx.arc(gx,gy,8,0,Math.PI*2);ctx.stroke();}
+    }
+  });
+
+  // hazards
+  LO.hazards.forEach(function(h){
+    var hx2=h.x-cam.x,hy2=h.y-cam.y;
+    if(hx2<-40||hx2>CW+40||hy2<-40||hy2>CH+40) return;
+    if(h.type==='rock'){
+      ctx.fillStyle='#7f8c8d';ctx.beginPath();ctx.arc(hx2,hy2,h.r,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle='#636e72';ctx.beginPath();ctx.arc(hx2-4,hy2-4,h.r*0.4,0,Math.PI*2);ctx.fill();
+    } else if(h.type==='asteroid'){
+      ctx.fillStyle='#6c5ce7';ctx.beginPath();ctx.arc(hx2,hy2,h.r,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle='rgba(108,92,231,0.3)';ctx.beginPath();ctx.ellipse(hx2,hy2+h.r,h.r*0.8,h.r*0.3,0,0,Math.PI*2);ctx.fill();
+    } else if(h.type==='frienddino'){
+      if(!h.fed){ctx.fillStyle=h.col;ctx.fillRect(hx2-12,hy2-12,24,24);ctx.fillStyle='#fff';ctx.fillRect(hx2+2,hy2-10,5,5);}
+    } else if(h.type==='lightning'){
+      var la=0.8+0.2*Math.sin(Date.now()/100+h.x);
+      ctx.strokeStyle='rgba(255,255,0,'+la+')';ctx.lineWidth=3;
+      ctx.beginPath();ctx.moveTo(hx2,hy2-h.r);
+      for(var lz=0;lz<4;lz++){ctx.lineTo(hx2+(Math.random()-0.5)*20,hy2-h.r+lz*h.r*0.5);}
+      ctx.lineTo(hx2,hy2+h.r);ctx.stroke();
+    }
+  });
+
+  // PITS
+  LO.pits.forEach(function(pit){
     if(!pit.active) return;
     var px=pit.x-cam.x,py=pit.y-cam.y,r=pit.r;
-    if(px<-80||px>W+80||py<-80||py>H+80) return;
+    if(px<-80||px>CW+80||py<-80||py>CH+80) return;
     ctx.fillStyle='#0a0a0a';ctx.beginPath();ctx.ellipse(px,py,r,r*0.65,0,0,Math.PI*2);ctx.fill();
     ctx.strokeStyle='#8B6914';ctx.lineWidth=6;ctx.beginPath();ctx.ellipse(px,py,r,r*0.65,0,0,Math.PI*2);ctx.stroke();
     ctx.strokeStyle='#a07830';ctx.lineWidth=3;ctx.beginPath();ctx.ellipse(px,py,r+5,r*0.65+4,0,0,Math.PI*2);ctx.stroke();
     ctx.strokeStyle='#1a1a1a';ctx.lineWidth=2;
     ctx.beginPath();ctx.ellipse(px,py,r*0.7,r*0.65*0.7,0,0,Math.PI*2);ctx.stroke();
     ctx.beginPath();ctx.ellipse(px,py,r*0.4,r*0.65*0.4,0,0,Math.PI*2);ctx.stroke();
-    ctx.font='bold 18px Arial';ctx.textAlign='center';ctx.fillText('\u26A0\uFE0F',px,py-r*0.65-10);
-    var t2=Date.now()/600,alpha=0.3+0.3*Math.sin(t2);
-    ctx.strokeStyle='rgba(255,80,80,'+alpha+')';ctx.lineWidth=4;
+    ctx.font='bold 16px Arial';ctx.textAlign='center';ctx.fillText('\u26A0\uFE0F',px,py-r*0.65-8);
+    var ta=0.3+0.3*Math.sin(Date.now()/600);
+    ctx.strokeStyle='rgba(255,80,80,'+ta+')';ctx.lineWidth=4;
     ctx.beginPath();ctx.ellipse(px,py,r+10,r*0.65+8,0,0,Math.PI*2);ctx.stroke();
   });
-  // Baby dinos (draw back to front so first baby is closest to big dino)
+
+  // night overlay
+  if(isNight){
+    ctx.fillStyle='rgba(0,0,20,0.45)';ctx.fillRect(0,0,CW,CH);
+    // dino torch glow
+    var ddx=dino.x-cam.x,ddy=dino.y-cam.y;
+    var tgrd=ctx.createRadialGradient(ddx,ddy,10,ddx,ddy,120);
+    tgrd.addColorStop(0,'rgba(255,220,100,0.18)');
+    tgrd.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle=tgrd;ctx.fillRect(0,0,CW,CH);
+  }
+
+  // babies
   for(var bi=babies.length-1;bi>=0;bi--){
     var tidx=trail.length-1-babies[bi].offset;
     if(tidx<0) tidx=0;
     if(trail.length>0) drawBabyDino(trail[tidx].x,trail[tidx].y,babies[bi].adult);
   }
-  // Big dino on top
+  // big dino
   drawBigDino();
-  // Minimap
-  var mw=80,mh=80,mx=W-88,my=8;
-  ctx.fillStyle='rgba(0,0,0,0.6)';ctx.fillRect(mx,my,mw,mh);
-  ctx.strokeStyle='#888';ctx.lineWidth=1;ctx.strokeRect(mx,my,mw,mh);
+
+  // score target progress bar
+  var target=currentLevel*1000;
+  var prog=Math.min(score/target,1);
+  ctx.fillStyle='rgba(0,0,0,0.4)';ctx.fillRect(8,8,160,12);
+  ctx.fillStyle='#4ade4a';ctx.fillRect(8,8,160*prog,12);
+  ctx.strokeStyle='#888';ctx.lineWidth=1;ctx.strokeRect(8,8,160,12);
+  ctx.fillStyle='#fff';ctx.font='9px Arial';ctx.textAlign='left';
+  ctx.fillText('Level '+currentLevel+': '+score+'/'+target,10,18);
+
+  // minimap
+  var mw=76,mh=76,mmx=CW-84,mmy=8;
+  ctx.fillStyle='rgba(0,0,0,0.6)';ctx.fillRect(mmx,mmy,mw,mh);
+  ctx.strokeStyle='#888';ctx.lineWidth=1;ctx.strokeRect(mmx,mmy,mw,mh);
   var sc=mw/WORLD_W;
   ctx.fillStyle='#555';
-  streetY.forEach(function(sy){ctx.fillRect(mx,my+sy*sc,mw,TILE*sc);});
-  streetX.forEach(function(sx){ctx.fillRect(mx+sx*sc,my,TILE*sc,mh);});
-  eggTrees.filter(function(t){return !t.got;}).forEach(function(t){ctx.fillStyle='#ffe97a';ctx.fillRect(mx+t.x*sc-2,my+t.y*sc-2,4,4);});
-  cups.filter(function(cu){return !cu.got;}).forEach(function(cu){ctx.fillStyle='#FFD700';ctx.fillRect(mx+cu.x*sc-2,my+cu.y*sc-2,4,4);});
-  pits.filter(function(p){return p.active;}).forEach(function(p){ctx.fillStyle='#ff4444';ctx.fillRect(mx+p.x*sc-3,my+p.y*sc-3,6,6);});
-  ctx.fillStyle='#4ade4a';ctx.beginPath();ctx.arc(mx+dino.x*sc,my+dino.y*sc,5,0,Math.PI*2);ctx.fill();
+  streetY.forEach(function(sy){ctx.fillRect(mmx,mmy+sy*sc,mw,TILE*sc);});
+  streetX.forEach(function(sx){ctx.fillRect(mmx+sx*sc,mmy,TILE*sc,mh);});
+  // home on minimap
+  ctx.fillStyle='#00ff50';ctx.fillRect(mmx+HOME_X*sc-3,mmy+HOME_Y*sc-3,6,6);
+  // eggs
+  LO.trees.filter(function(t){return t.egg&&!t.got;}).forEach(function(t){ctx.fillStyle='#ffe97a';ctx.fillRect(mmx+t.x*sc-1,mmy+t.y*sc-1,3,3);});
+  // cups
+  LO.cups.filter(function(cu){return !cu.got;}).forEach(function(cu){ctx.fillStyle='#FFD700';ctx.fillRect(mmx+cu.x*sc-1,mmy+cu.y*sc-1,3,3);});
+  // pits
+  LO.pits.filter(function(p){return p.active;}).forEach(function(p){ctx.fillStyle='#ff4444';ctx.fillRect(mmx+p.x*sc-2,mmy+p.y*sc-2,4,4);});
+  // sharks
+  LO.sharks.forEach(function(s){if(s.wx)ctx.fillStyle='#00ccff';ctx.fillRect(mmx+s.wx*sc-2,mmy+s.wy*sc-2,4,4);});
+  // dino
+  ctx.fillStyle='#4ade4a';ctx.beginPath();ctx.arc(mmx+dino.x*sc,mmy+dino.y*sc,4,0,Math.PI*2);ctx.fill();
 }
 
+// ============================================================
+// MAIN LOOP
+// ============================================================
 function loop(){
-  update();collect();checkPits();draw();
+  update();
+  collect();
+  if(bvActive){updateBuilding();drawBuildingInterior();}
+  draw();
   requestAnimationFrame(loop);
 }
 loop();
